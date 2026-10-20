@@ -218,21 +218,19 @@ export function saveTrips(trips) {
   }
 }
 
+/** Light until the user picks otherwise. 'system' (Auto) is stored explicitly. */
 export function loadTheme() {
   try {
     const t = safeStorage()?.getItem(THEME_KEY)
-    return t === 'light' || t === 'dark' ? t : 'system'
+    return t === 'dark' || t === 'system' ? t : 'light'
   } catch {
-    return 'system'
+    return 'light'
   }
 }
 
 export function saveTheme(theme) {
   try {
-    const store = safeStorage()
-    if (!store) return
-    if (theme === 'system') store.removeItem(THEME_KEY)
-    else store.setItem(THEME_KEY, theme)
+    safeStorage()?.setItem(THEME_KEY, theme)
   } catch {
     /* ignore */
   }
