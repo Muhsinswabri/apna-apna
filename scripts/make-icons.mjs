@@ -9,15 +9,15 @@ const src = path.join(root, 'assets', 'logo-source.webp')
 const out = path.join(root, 'public', 'icons')
 await mkdir(out, { recursive: true })
 
-// The rounded square inside the 1254px source artwork (excludes the tagline below it).
-const CROP = { left: 176, top: 152, width: 908, height: 908 }
+// The rounded white tile inside the 1254px source artwork, trimmed of its soft outer shadow.
+const CROP = { left: 108, top: 118, width: 1034, height: 1034 }
 
 const roundedMask = (size) =>
   Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}"><rect width="${size}" height="${size}" rx="${size * 0.225}" fill="#fff"/></svg>`)
 
 const gradient = (size) =>
   Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
-  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E3EEFF"/><stop offset="1" stop-color="#EBE2FF"/></linearGradient></defs>
+  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F1F2FF"/><stop offset="1" stop-color="#E6DFFF"/></linearGradient></defs>
   <rect width="${size}" height="${size}" fill="url(#g)"/></svg>`)
 
 /** The logo tile with transparent rounded corners. */
