@@ -191,6 +191,12 @@ const SCENES = {
   ),
 }
 
+/** Just the 56 x 56 scene, for places that draw it themselves (for example the exported report). */
+export function TripScene({ id }) {
+  const Scene = SCENES[id] ?? SCENES[DEFAULT_TRIP_IMAGE]
+  return <Scene />
+}
+
 /**
  * The trip's thumbnail, chosen from its saved image category (or inferred from its name for
  * older trips). The box keeps a fixed square size and rounded corners, so it never moves the layout.

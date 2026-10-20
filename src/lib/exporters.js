@@ -83,7 +83,10 @@ export function settlementText(trip, stats) {
 }
 
 export function downloadText(filename, text, mime) {
-  const blob = new Blob([text], { type: mime })
+  downloadBlob(filename, new Blob([text], { type: mime }))
+}
+
+export function downloadBlob(filename, blob) {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url

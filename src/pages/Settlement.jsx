@@ -1,15 +1,16 @@
 import { useMemo, useState } from 'react'
-import { ArrowLeft, ArrowRight, CheckCircle2, FileSpreadsheet, Flag, RotateCcw, Share2, Wallet } from 'lucide-react'
+import { ArrowLeft, ArrowRight, CheckCircle2, FileSpreadsheet, Flag, RotateCcw, Wallet } from 'lucide-react'
 import { navigate } from '../hooks/useRoute.js'
 import { useTrips } from '../hooks/useTrips.jsx'
 import { computeTripStats } from '../lib/calculations.js'
 import { formatMoney } from '../lib/currency.js'
 import { formatDate } from '../lib/dates.js'
-import { exportTripCsv, settlementText, shareText } from '../lib/exporters.js'
+import { exportTripCsv } from '../lib/exporters.js'
 import { touch } from '../lib/model.js'
 import { EmptyState } from '../components/EmptyState.jsx'
 import { ReceiptIllustration } from '../components/illustrations.jsx'
 import { Page, PageHeader } from '../components/PageHeader.jsx'
+import { ShareSummary } from '../components/ShareSummary.jsx'
 import { ConfirmDialog } from '../components/Sheet.jsx'
 import { useToast } from '../components/Toast.jsx'
 import { MemberAvatar } from '../components/MemberAvatar.jsx'
@@ -60,12 +61,6 @@ export default function Settlement({ tripId }) {
   const completed = trip.status === 'completed'
   const money = (n) => formatMoney(n, trip.currencyCode)
   const nameOf = (id) => stats.byId[id]?.name ?? 'Unknown'
-
-  const onShare = async () => {
-    const result = await shareText(`${trip.name} - Apna Apna`, settlementText(trip, stats))
-    if (result === 'copied') toast('Summary copied to clipboard')
-    else if (result === 'failed') toast('Could not share the summary', 'error')
-  }
 
   return (
     <>
@@ -198,9 +193,7 @@ export default function Settlement({ tripId }) {
         </section>
 
         <div className="grid grid-cols-2 gap-3">
-          <button className="btn-primary col-span-2" onClick={onShare}>
-            <Share2 size={18} /> Share {completed ? 'settlement' : 'status'} summary
-          </button>
+          <ShareSummary trip={trip} />
           <button
             className="btn-outline"
             onClick={() => {

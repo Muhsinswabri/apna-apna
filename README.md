@@ -26,6 +26,14 @@ npm run icons      # regenerate PNG icons in public/icons from the logo geometry
 - Settlement is greedy (largest debtor pays largest creditor) in `src/lib/settlement.js`. It is practical, not guaranteed to be the minimum number of transfers.
 - User-entered names and titles are Title Cased (`src/lib/text.js`, `TitleInput`).
 
+## Sharing the settlement summary
+
+"Share Settlement Summary" (Current Status / Final Settlement screen) builds a standalone report from the saved trip, using the same `computeTripStats` as the screen.
+
+- `settlementReport.js` turns the trip into plain, already-formatted data. `reportLayout.js` measures and places it: if everything fits one image of up to 620 x 1480 units it becomes a PNG, otherwise a multi-page A4 PDF with a repeated header, page numbers, and no member card or payment split across pages. Text is never shrunk to force a fit.
+- `reportRender.jsx` draws the pages on a canvas (no screen capture, no network; fonts, logo, trip picture and avatars are bundled) and is loaded only when the button is used. `pdf.js` writes the PDF itself, so no library was added. The PDF holds page images, so its text is not selectable.
+- `shareFile.js` uses `navigator.canShare({ files })` and the Web Share API. A cancelled share shows nothing. If the browser wants a fresh tap, or cannot share files, a sheet offers Share, Download and Copy text.
+
 ## Storage
 
 - Key `apna_apna_trips`, value `{ version, trips }`. Current schema version is 2.
@@ -42,7 +50,7 @@ src/
   pages/        Home, CreateTrip, Dashboard, Members, ExpenseForm, ExpenseDetail, Settlement (Current Status + Final), Settings
   components/   ui, Sheet (dialogs), Toast, PageHeader, ExpenseItem, EmptyState, InstallCard, TripNotices, TitleInput, CurrencyPicker
   hooks/        useTrips (persisted store), useRoute (hash router), useTheme, useInstall
-  lib/          currencies, currency, text, members, calculations, settlement, validation, storage, model, dates, exporters (+ tests)
+  lib/          currencies, currency, text, members, calculations, settlement, validation, storage, model, dates, exporters, settlementReport, reportLayout, reportRender, pdf, shareFile (+ tests)
 public/icons/   favicon.svg, PWA PNG icons
 scripts/        make-icons.mjs
 ```

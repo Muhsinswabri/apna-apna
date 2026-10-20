@@ -3,7 +3,7 @@ import { Avatar } from './ui.jsx'
 
 const INK = '#171A35'
 
-function Art({ a }) {
+export function Art({ a }) {
   const faceY = a.style === 'hijab' ? 31 : 28
   const faceR = a.style === 'hijab' ? 12 : 13
   return (
