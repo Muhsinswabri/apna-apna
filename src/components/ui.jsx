@@ -17,12 +17,12 @@ export function Logo({ size = 40 }) {
 }
 
 const AVATAR_TONES = [
-  'bg-[#E3F5A0] text-[#3C4A00] dark:bg-[#434F12] dark:text-[#D9F26E]',
-  'bg-[#ECECE7] text-[#2B2B2B] dark:bg-[#34342F] dark:text-[#DADAD2]',
-  'bg-[#DCEAFA] text-[#25507C] dark:bg-[#1E3550] dark:text-[#A5C8EE]',
-  'bg-[#F8E2D4] text-[#8A4A22] dark:bg-[#4A2E1B] dark:text-[#FFB27A]',
-  'bg-[#E6E0F6] text-[#4F3F90] dark:bg-[#322A55] dark:text-[#C3B6F0]',
-  'bg-[#D9F0DC] text-[#23683A] dark:bg-[#1F3F2B] dark:text-[#8FD6A4]',
+  'bg-[#E4E4E4] text-[#111111] dark:bg-[#383838] dark:text-[#F5F5F5]',
+  'bg-[#F0F0F0] text-[#111111] dark:bg-[#2A2A2A] dark:text-[#F5F5F5]',
+  'bg-[#DADADA] text-[#111111] dark:bg-[#454545] dark:text-[#F5F5F5]',
+  'bg-[#F0F0F0] text-[#111111] dark:bg-[#2A2A2A] dark:text-[#F5F5F5]',
+  'bg-[#E4E4E4] text-[#111111] dark:bg-[#383838] dark:text-[#F5F5F5]',
+  'bg-[#DADADA] text-[#111111] dark:bg-[#454545] dark:text-[#F5F5F5]',
 ]
 
 export function Avatar({ name, index = 0, size = 40 }) {
@@ -39,7 +39,7 @@ export function Avatar({ name, index = 0, size = 40 }) {
 }
 
 /** Bar colours matching the avatar tones, for per-member contribution bars. */
-export const MEMBER_BAR_COLORS = ['#111111', '#CDF246', '#8AA3B8', '#E0A27A', '#9B8FD0', '#6FBF8A']
+export const MEMBER_BAR_COLORS = ['#111111', '#8A8A8A', '#C9C9C9', '#444444', '#E2E2E2', '#666666']
 
 /** Who has paid what, as a stacked bar. Built from real per-member totals. */
 export function ContributionBar({ rows }) {

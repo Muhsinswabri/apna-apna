@@ -1,21 +1,21 @@
-// Original flat illustrations for Apna Apna. Rounded shapes, simple faces, black, lime and soft grey.
+// Original flat illustrations for Apna Apna. Rounded shapes, simple faces, black and grey on white.
 // Colours are fixed (not theme tokens) so the artwork looks the same in light and dark mode.
-// Key names are historical: `orange` is the main black, `lav`/`mint` are pale lime, `sun` is lime.
+// Key names are historical; every colour is now a black or grey.
 
 const C = {
   ink: '#0D0D0D',
-  peach: '#F1F3E8',
+  peach: '#F4F4F4',
   cream: '#FFFFFF',
   orange: '#161616',
   deep: '#2B2B2B',
-  lav: '#E9F6B0',
-  lavDeep: '#C4E83A',
-  sky: '#EEF1F4',
-  skyDeep: '#1B1B1B',
-  mint: '#DCEFA6',
-  mintDeep: '#8C9086',
-  sun: '#CDF246',
-  pink: '#FF9AA2',
+  lav: '#EFEFEF',
+  lavDeep: '#BDBDBD',
+  sky: '#F6F6F6',
+  skyDeep: '#161616',
+  mint: '#E4E4E4',
+  mintDeep: '#8A8A8A',
+  sun: '#DADADA',
+  pink: '#BDBDBD',
 }
 
 /** Rupee sign drawn as strokes so it never depends on font support. Centered on (0,0). */
@@ -35,7 +35,7 @@ function Person({ cx, top, skin, shirt, hair = C.ink, style = 'short', capColor 
     <g>
       {style === 'long' && <rect x={cx - 22} y={top - 14} width="44" height="56" rx="21" fill={hair} />}
       <rect x={cx - 33} y={top + 22} width="66" height="140" rx="28" fill={shirt} />
-      <circle cx={cx} cy={top} r="19" fill={skin} />
+      <circle cx={cx} cy={top} r="19" fill={skin} stroke={C.ink} strokeWidth="2.2" />
       {style === 'curly' && (
         <g fill={hair}>
           <path d={`M${cx - 19} ${top - 1} a19 19 0 0 1 38 0 Q${cx} ${top - 12} ${cx - 19} ${top - 1}Z`} />
@@ -62,7 +62,7 @@ function Person({ cx, top, skin, shirt, hair = C.ink, style = 'short', capColor 
       <circle cx={cx + 6.5} cy={top + 2} r="1.9" fill={C.ink} />
       <circle cx={cx - 12} cy={top + 8} r="3.2" fill={C.pink} opacity=".6" />
       <circle cx={cx + 12} cy={top + 8} r="3.2" fill={C.pink} opacity=".6" />
-      <path d={`M${cx - 6.5} ${top + 8} q6.5 8 13 0 Z`} fill="#C0392B" stroke={C.ink} strokeWidth="1.4" strokeLinejoin="round" />
+      <path d={`M${cx - 6.5} ${top + 8} q6.5 8 13 0 Z`} fill={C.ink} stroke={C.ink} strokeWidth="1.4" strokeLinejoin="round" />
     </g>
   )
 }
@@ -78,9 +78,9 @@ function Arm({ x1, y1, x2, y2, color, skin }) {
 
 /** Home hero: three friends with a suitcase, mountains and a shared receipt. */
 export function FriendsHero({ className = '' }) {
-  const skinA = '#F2B28C'
-  const skinB = '#E7A57B'
-  const skinC = '#F6C7A3'
+  const skinA = '#FFFFFF'
+  const skinB = '#F2F2F2'
+  const skinC = '#FFFFFF'
   return (
     <svg viewBox="0 0 320 210" className={className} role="img" aria-label="Three friends travelling together" fill="none">
       <circle cx="160" cy="124" r="104" fill="#fff" opacity=".55" />
@@ -211,10 +211,10 @@ export function ReceiptIllustration({ className = '' }) {
 
 /** Tiny pastel mountain tile for trip cards. `index` picks the colour pair. */
 const TILE_TONES = [
-  { bg: C.lav, far: '#D4E88C', near: C.lavDeep },
-  { bg: C.sky, far: '#C9D0D8', near: C.skyDeep },
-  { bg: C.mint, far: '#C4D69A', near: C.mintDeep },
-  { bg: C.peach, far: '#DDE0CC', near: C.orange },
+  { bg: C.lav, far: '#DCDCDC', near: C.lavDeep },
+  { bg: C.sky, far: '#D0D0D0', near: C.skyDeep },
+  { bg: C.mint, far: '#D6D6D6', near: C.mintDeep },
+  { bg: C.peach, far: '#E6E6E6', near: C.orange },
 ]
 
 export function TripTile({ index = 0, size = 56 }) {

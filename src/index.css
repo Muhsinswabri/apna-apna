@@ -4,59 +4,60 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Minimal monochrome: white paper, black ink, hairline borders. Green and red appear only for money. */
 :root {
   --c-bg: 255 255 255;
   --c-surface: 255 255 255;
-  --c-sunken: 245 245 242; /* search fields, inner panels */
-  --c-line: 232 233 228;
+  --c-sunken: 244 244 244; /* keypad-style grey: fields and inner panels */
+  --c-line: 228 228 228;
   --c-edge: 13 13 13;
-  --c-ink: 13 13 13; /* near-black */
-  --c-mute: 104 108 100; /* #686C64 */
+  --c-ink: 13 13 13;
+  --c-mute: 110 110 110; /* #6E6E6E */
   --c-brand: 13 13 13; /* primary buttons are black */
   --c-brand-deep: 40 40 40;
-  --c-brand-soft: 238 247 196; /* pale lime */
+  --c-brand-soft: 240 240 240;
   --c-on-brand: 255 255 255;
-  --c-accent: 13 13 13; /* links and highlights in text */
-  --c-sun: 205 242 70; /* lime #CDF246 */
-  --c-lav: 246 250 214;
-  --c-sky: 223 238 252;
-  --c-mint: 226 246 150;
+  --c-accent: 13 13 13;
+  --c-sun: 13 13 13; /* highlight = ink */
+  --c-lav: 244 244 244;
+  --c-sky: 244 244 244;
+  --c-mint: 232 232 232;
   --c-pos: 18 128 66;
-  --c-pos-soft: 214 240 218;
+  --c-pos-soft: 226 243 230;
   --c-neg: 204 58 58;
-  --c-neg-soft: 251 225 223;
-  --c-g1: 222 245 130; /* page wash, top left */
-  --c-g2: 205 232 252; /* page wash, top right */
-  --c-hero-a: 214 243 90; /* lime card gradient */
-  --c-hero-b: 247 252 226;
+  --c-neg-soft: 251 228 226;
+  --c-g1: 255 255 255; /* no page wash */
+  --c-g2: 255 255 255;
+  --c-hero-a: 246 246 246; /* flat light card */
+  --c-hero-b: 246 246 246;
   color-scheme: light;
 }
 
 :root[data-theme='dark'] {
-  --c-bg: 12 12 11;
-  --c-surface: 24 24 22;
-  --c-sunken: 36 36 33;
-  --c-line: 52 52 48;
+  --c-bg: 10 10 10;
+  --c-surface: 20 20 20;
+  --c-sunken: 32 32 32;
+  --c-line: 48 48 48;
   --c-edge: 0 0 0;
-  --c-ink: 244 245 240;
-  --c-mute: 168 172 162;
-  --c-brand: 244 245 240; /* white buttons on dark */
-  --c-brand-deep: 220 222 214;
-  --c-brand-soft: 44 52 18;
+  --c-ink: 245 245 245;
+  --c-mute: 160 160 160;
+  --c-brand: 245 245 245; /* white buttons on dark */
+  --c-brand-deep: 220 220 220;
+  --c-brand-soft: 38 38 38;
   --c-on-brand: 13 13 13;
-  --c-accent: 214 244 100;
-  --c-sun: 205 242 70;
-  --c-lav: 48 52 24;
-  --c-sky: 30 44 58;
-  --c-mint: 54 66 20;
+  --c-accent: 245 245 245;
+  --c-sun: 245 245 245;
+  --c-lav: 32 32 32;
+  --c-sky: 32 32 32;
+  --c-mint: 44 44 44;
   --c-pos: 100 210 140;
   --c-pos-soft: 24 62 40;
   --c-neg: 255 128 128;
   --c-neg-soft: 68 30 34;
-  --c-g1: 52 62 16;
-  --c-g2: 24 40 56;
-  --c-hero-a: 60 74 16;
-  --c-hero-b: 26 28 18;
+  --c-g1: 10 10 10;
+  --c-g2: 10 10 10;
+  --c-hero-a: 26 26 26;
+  --c-hero-b: 26 26 26;
   color-scheme: dark;
 }
 
@@ -68,16 +69,12 @@
   body {
     @apply bg-bg font-sans text-ink antialiased;
     letter-spacing: -0.011em;
-    background-image: radial-gradient(75% 32% at 0% 0%, rgb(var(--c-g1) / 0.55), transparent 72%),
-      radial-gradient(55% 26% at 100% 4%, rgb(var(--c-g2) / 0.5), transparent 72%);
-    background-attachment: fixed;
-    background-repeat: no-repeat;
     overscroll-behavior-y: none;
   }
   h1,
   h2,
   h3 {
-    letter-spacing: -0.03em;
+    letter-spacing: -0.035em;
   }
   button {
     @apply select-none;
@@ -94,46 +91,47 @@
 
 @layer components {
   .card {
-    @apply rounded-[28px] border border-line/80 bg-surface shadow-card;
+    @apply rounded-[24px] border border-line bg-surface;
   }
   .hero-grad {
+    @apply bg-sunken;
     background-image: linear-gradient(170deg, rgb(var(--c-hero-a)) 0%, rgb(var(--c-hero-b)) 100%);
   }
   .btn {
     @apply inline-flex min-h-[52px] items-center justify-center gap-2 rounded-full border border-transparent px-6 text-[15px] font-semibold transition duration-100 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50;
   }
   .btn-primary {
-    @apply btn bg-brand text-on-brand shadow-pop;
+    @apply btn bg-brand text-on-brand;
   }
   .btn-soft {
-    @apply btn bg-brand-soft text-ink;
+    @apply btn bg-sunken text-ink;
   }
   .btn-outline {
-    @apply btn border-line bg-surface text-ink shadow-pop-sm;
+    @apply btn border-ink bg-surface text-ink;
   }
   .btn-danger {
-    @apply btn bg-neg text-white shadow-pop;
+    @apply btn bg-neg text-white;
   }
   .btn-sm {
     @apply min-h-[40px] px-4 text-sm;
   }
   .input {
-    @apply min-h-[54px] w-full rounded-2xl border border-line bg-sunken px-4 font-medium text-ink placeholder:text-mute/70 transition focus:border-ink focus:bg-surface focus:outline-none;
+    @apply min-h-[54px] w-full rounded-2xl border border-transparent bg-sunken px-4 font-medium text-ink placeholder:text-mute/70 transition focus:border-ink focus:bg-surface focus:outline-none;
   }
   .input-error {
     @apply border-neg focus:border-neg;
   }
   .label {
-    @apply mb-2 block text-[13px] font-semibold text-mute;
+    @apply mb-2 block text-[13px] font-medium text-mute;
   }
   .chip {
-    @apply inline-flex min-h-[42px] items-center gap-1.5 rounded-full border border-line bg-surface px-3.5 text-sm font-medium transition duration-100 active:scale-[0.96];
+    @apply inline-flex min-h-[42px] items-center gap-1.5 rounded-full border border-ink/70 bg-surface px-4 text-sm font-medium transition duration-100 active:scale-[0.96];
   }
   .chip-on {
-    @apply border-sun bg-sun text-[#0D0D0D];
+    @apply border-ink bg-ink text-bg;
   }
   .section-title {
-    @apply text-[13px] font-semibold uppercase tracking-wider text-mute;
+    @apply text-sm font-medium text-mute;
   }
 }
 

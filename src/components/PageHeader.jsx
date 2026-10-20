@@ -7,7 +7,7 @@ export function PageHeader({ title, subtitle, backTo = '/', actions, badge }) {
       <div className="mx-auto flex h-[68px] max-w-lg items-center gap-3 px-4">
         <button
           onClick={() => goBack(backTo)}
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface text-ink shadow-pop-sm transition active:scale-95"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line bg-surface text-ink transition active:scale-95"
           aria-label="Back"
         >
           <ArrowLeft size={20} strokeWidth={2.5} />
@@ -33,7 +33,7 @@ export function IconButton({ label, onClick, children, className = '' }) {
       onClick={onClick}
       aria-label={label}
       title={label}
-      className={`flex h-11 w-11 items-center justify-center rounded-full bg-surface text-ink shadow-pop-sm transition active:scale-95 ${className}`}
+      className={`flex h-11 w-11 items-center justify-center rounded-full border border-line bg-surface text-ink transition active:scale-95 ${className}`}
     >
       {children}
     </button>

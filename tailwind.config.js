@@ -31,10 +31,10 @@ export default {
         'neg-soft': 'rgb(var(--c-neg-soft) / <alpha-value>)',
       },
       boxShadow: {
-        card: '0 1px 2px rgb(0 0 0 / 0.03), 0 8px 24px rgb(0 0 0 / 0.05)',
-        pop: '0 6px 16px rgb(0 0 0 / 0.18)',
-        'pop-sm': '0 1px 2px rgb(0 0 0 / 0.05)',
-        nav: '0 10px 30px rgb(0 0 0 / 0.12)',
+        card: 'none',
+        pop: 'none',
+        'pop-sm': 'none',
+        nav: 'none',
       },
       keyframes: {
         rise: { from: { opacity: 0, transform: 'translateY(10px)' }, to: { opacity: 1, transform: 'none' } },
