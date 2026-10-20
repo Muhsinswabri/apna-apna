@@ -105,21 +105,22 @@ export default function Settings() {
               <strong className="text-ink">1. Create a trip</strong> and enter your group&rsquo;s names once.
             </p>
             <p>
-              <strong className="text-ink">2. Add expenses</strong> as you go. Pick who paid and who shared it.
+              <strong className="text-ink">2. Add expenses</strong> as you go. Pick who paid and who shared it. People can
+              join or leave mid-trip from Manage Members.
             </p>
             <p>
-              <strong className="text-ink">3. Finish the trip</strong> to see each person&rsquo;s balance and the simplest
-              list of who pays whom.
+              <strong className="text-ink">3. Check Current Status</strong> any time, then finish the trip to see the final
+              balances and who pays whom.
             </p>
             <p>
-              Final balance = amount paid − overall equal share (total ÷ all members). Share amounts are exact to the
-              paisa; leftover paise are handed out one by one so nothing is lost.
+              Balance = amount paid − your share of the expenses you took part in. Shares are exact to the smallest unit
+              of the currency; any leftover is handed out one by one so nothing is lost.
             </p>
             <p className="flex items-center gap-2">
-              <WifiOff size={16} className="shrink-0 text-brand" /> Works fully offline once installed or loaded.
+              <WifiOff size={16} className="shrink-0 text-accent" /> Works fully offline once installed or loaded.
             </p>
             <p className="flex items-center gap-2">
-              <HardDrive size={16} className="shrink-0 text-brand" /> Nothing is sent to any server.
+              <HardDrive size={16} className="shrink-0 text-accent" /> Nothing is sent to any server.
             </p>
           </div>
         </section>

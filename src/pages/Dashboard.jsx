@@ -12,39 +12,47 @@ import {
   Search,
   Share2,
   Trash2,
+  UserCog,
   Users,
   Wallet,
 } from 'lucide-react'
 import { navigate } from '../hooks/useRoute.js'
 import { useTrips } from '../hooks/useTrips.jsx'
 import { computeBreakdown, computeTripStats } from '../lib/calculations.js'
-import { formatINR } from '../lib/currency.js'
+import { formatMoney } from '../lib/currency.js'
 import { exportBackupJson, exportTripCsv, settlementText, shareText } from '../lib/exporters.js'
 import { sortExpensesNewestFirst, touch } from '../lib/model.js'
-import { nameKey, validateMemberName } from '../lib/validation.js'
+import { nameKey, normalizeName } from '../lib/text.js'
+import { validateMemberName } from '../lib/validation.js'
 import { EmptyState } from '../components/EmptyState.jsx'
 import { ExpenseItem } from '../components/ExpenseItem.jsx'
+import { ReceiptIllustration } from '../components/illustrations.jsx'
 import { IconButton, Page, PageHeader } from '../components/PageHeader.jsx'
 import { ConfirmDialog, Sheet } from '../components/Sheet.jsx'
 import { useToast } from '../components/Toast.jsx'
-import { Avatar, ContributionBar, FieldError, SignedAmount, StatusBadge } from '../components/ui.jsx'
+import { TitleInput } from '../components/TitleInput.jsx'
+import { Avatar, ContributionBar, FieldError, LeftTag, SignedAmount, StatusBadge } from '../components/ui.jsx'
 import { TripNotices } from '../components/TripNotices.jsx'
 
 const RECENT_COUNT = 5
 
-function MemberRow({ member, index, row, onRename, canEdit }) {
+function MemberRow({ member, index, row, currency, onRename, canEdit }) {
   const label = row.balance > 0 ? 'to receive' : row.balance < 0 ? 'to pay' : 'settled'
   return (
     <div className="flex items-center gap-3 p-3">
       <Avatar name={member.name} index={index} size={44} />
       <div className="min-w-0 flex-1">
-        <p className="truncate font-bold">{member.name}</p>
+        <p className="flex items-center gap-2 font-bold">
+          <span className="truncate">{member.name}</span>
+          {member.leftAt && <LeftTag />}
+        </p>
         <p className="text-[13px] text-mute">
-          Paid <span className="font-semibold tabular-nums text-ink">{formatINR(row.paid)}</span>
+          Paid <span className="font-semibold tabular-nums text-ink">{formatMoney(row.paid, currency)}</span>
+          {' · '}Share <span className="font-semibold tabular-nums text-ink">{formatMoney(row.allocated, currency)}</span>
         </p>
       </div>
       <div className="text-right">
-        <SignedAmount balance={row.balance} className="text-[17px]" />
+        <SignedAmount balance={row.balance} currency={currency} className="text-[17px]" />
         <p className="text-xs font-medium text-mute">{label}</p>
       </div>
       {canEdit && (
@@ -97,11 +105,15 @@ export default function Dashboard({ tripId }) {
   }
 
   const completed = trip.status === 'completed'
+  const money = (n) => formatMoney(n, trip.currencyCode)
   const nameOf = (id) => stats.byId[id]?.name ?? 'Unknown'
   const sorted = sortExpensesNewestFirst(trip.expenses)
   const q = query.trim().toLowerCase()
   const filtered = q
-    ? sorted.filter((e) => e.title.toLowerCase().includes(q) || nameOf(e.payerId).toLowerCase().includes(q))
+    ? sorted.filter((e) => e.title.toLowerCase().includes(q) ||
+          e.category.toLowerCase().includes(q) ||
+          nameOf(e.payerId).toLowerCase().includes(q) ||
+          e.participantIds.some((id) => nameOf(id).toLowerCase().includes(q)))
     : sorted
   const visible = q || showAll ? filtered : filtered.slice(0, RECENT_COUNT)
 
@@ -132,7 +144,7 @@ export default function Dashboard({ tripId }) {
     const others = trip.members.filter((m) => m.id !== renaming.id).map((m) => m.name)
     const err = validateMemberName(renameValue, others)
     if (err) return setRenameError(err)
-    const clean = renameValue.trim().replace(/\s+/g, ' ')
+    const clean = normalizeName(renameValue)
     updateTrip(trip.id, (t) => ({ ...t, members: t.members.map((m) => (m.id === renaming.id ? { ...m, name: clean } : m)) }))
     setRenaming(null)
     toast('Name updated')
@@ -151,7 +163,7 @@ export default function Dashboard({ tripId }) {
     <>
       <PageHeader
         title={trip.name}
-        subtitle={`${stats.memberCount} ${stats.memberCount === 1 ? 'member' : 'members'}`}
+        subtitle={`${stats.activeCount} active${stats.leftCount ? ` · ${stats.leftCount} left` : ''}${trip.destination ? ' · ' + trip.destination : ''}`}
         badge={<StatusBadge status={trip.status} />}
         backTo="/"
         actions={
@@ -165,8 +177,8 @@ export default function Dashboard({ tripId }) {
 
         <section aria-label="Total trip expenses" className="hero-grad rounded-[32px] p-6 shadow-card">
           <p className="text-sm font-semibold text-ink/70">Total Trip Expenses</p>
-          <p className="mb-4 mt-1 text-[44px] font-extrabold leading-none tabular-nums tracking-tight">
-            {formatINR(stats.total)}
+          <p className="mb-4 mt-1 text-[44px] font-bold leading-none tabular-nums tracking-tight">
+            {money(stats.total)}
           </p>
           <div className="mb-4">
             <ContributionBar rows={stats.rows} />
@@ -176,14 +188,26 @@ export default function Dashboard({ tripId }) {
               <p className="flex items-center gap-1.5 text-xs font-semibold text-mute">
                 <Receipt size={13} /> Expenses
               </p>
-              <p className="text-lg font-extrabold">{stats.expenseCount}</p>
+              <p className="text-lg font-bold">{stats.expenseCount}</p>
             </div>
-            <div className="rounded-2xl bg-surface/70 p-3.5 backdrop-blur">
-              <p className="flex items-center gap-1.5 text-xs font-semibold text-mute">
-                <Users size={13} /> Equal share each
-              </p>
-              <p className="text-lg font-extrabold tabular-nums">{formatINR(stats.equalShare)}</p>
-            </div>
+            {stats.equalShareMeaningful ? (
+              <div className="rounded-2xl bg-surface/70 p-3.5 backdrop-blur">
+                <p className="flex items-center gap-1.5 text-xs font-semibold text-mute">
+                  <Users size={13} /> Equal share each
+                </p>
+                <p className="text-lg font-bold tabular-nums">{money(stats.equalShare)}</p>
+              </div>
+            ) : (
+              <div className="rounded-2xl bg-surface/70 p-3.5 backdrop-blur">
+                <p className="flex items-center gap-1.5 text-xs font-semibold text-mute">
+                  <Users size={13} /> Members
+                </p>
+                <p className="text-lg font-bold">
+                  {stats.activeCount} active
+                  {stats.leftCount ? <span className="text-sm font-bold text-mute"> · {stats.leftCount} left</span> : null}
+                </p>
+              </div>
+            )}
           </div>
         </section>
 
@@ -191,7 +215,7 @@ export default function Dashboard({ tripId }) {
           {completed ? (
             <>
               <div className="flex items-center gap-3 rounded-2xl bg-surface/80 p-4 text-sm shadow-card">
-                <Flag size={20} className="shrink-0 text-brand" />
+                <Flag size={20} className="shrink-0 text-accent" />
                 <p className="font-medium text-mute">This trip is completed. Reopen it to add or change expenses.</p>
               </div>
               <div className="grid grid-cols-[1.35fr_1fr] gap-3">
@@ -204,19 +228,34 @@ export default function Dashboard({ tripId }) {
               </div>
             </>
           ) : (
-            <div className="grid grid-cols-[1.35fr_1fr] gap-3">
-              <button className="btn-primary h-14 text-base" onClick={() => navigate(`/trip/${trip.id}/add`)}>
-                <Plus size={22} /> Add Expense
-              </button>
-              <button className="btn-outline h-14 whitespace-nowrap !px-3" onClick={() => setConfirm('finish')}>
-                <Flag size={17} /> Finish Trip
-              </button>
-            </div>
+            <>
+              <div className="grid grid-cols-[1.35fr_1fr] gap-3">
+                <button className="btn-primary h-14 text-base" onClick={() => navigate(`/trip/${trip.id}/add`)}>
+                  <Plus size={22} /> Add Expense
+                </button>
+                <button className="btn-outline h-14 whitespace-nowrap !px-3" onClick={() => setConfirm('finish')}>
+                  <Flag size={17} /> Finish Trip
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <button className="btn-soft h-12 whitespace-nowrap !px-3" onClick={() => navigate(`/trip/${trip.id}/status`)}>
+                  Current Status
+                </button>
+                <button className="btn-soft h-12 whitespace-nowrap !px-3" onClick={() => navigate(`/trip/${trip.id}/members`)}>
+                  Manage Members
+                </button>
+              </div>
+            </>
           )}
         </section>
 
         <section aria-label="Members" className="flex flex-col gap-3">
-          <h2 className="section-title px-1">Member summary</h2>
+          <div className="flex items-center justify-between px-1">
+            <h2 className="section-title">Member summary</h2>
+            <button className="text-sm font-bold text-accent" onClick={() => navigate(`/trip/${trip.id}/members`)}>
+              {completed ? 'View' : 'Manage'}
+            </button>
+          </div>
           <div className="card divide-y divide-line/60 p-1.5">
             {trip.members.map((m, i) => (
               <MemberRow
@@ -224,6 +263,7 @@ export default function Dashboard({ tripId }) {
                 member={m}
                 index={i}
                 row={stats.byId[m.id]}
+                currency={trip.currencyCode}
                 canEdit={!completed}
                 onRename={() => openRename(m)}
               />
@@ -235,7 +275,7 @@ export default function Dashboard({ tripId }) {
           <div className="flex items-center justify-between px-1">
             <h2 className="section-title">{q || showAll ? 'All expenses' : 'Recent expenses'}</h2>
             {!q && filtered.length > RECENT_COUNT && (
-              <button className="text-sm font-bold text-brand" onClick={() => setShowAll((v) => !v)}>
+              <button className="text-sm font-bold text-accent" onClick={() => setShowAll((v) => !v)}>
                 {showAll ? 'Show less' : `View all (${filtered.length})`}
               </button>
             )}
@@ -258,7 +298,7 @@ export default function Dashboard({ tripId }) {
           <div className="card p-1.5">
             {trip.expenses.length === 0 ? (
               <EmptyState
-                icon={Receipt}
+                illustration={<ReceiptIllustration className="w-full" />}
                 title="No expenses yet"
                 text={completed ? 'This trip had no expenses.' : 'Add the first expense and it will show up here.'}
               />
@@ -270,6 +310,8 @@ export default function Dashboard({ tripId }) {
                   key={e.id}
                   expense={e}
                   payerName={nameOf(e.payerId)}
+                  participantNames={e.participantIds.map(nameOf)}
+                  currency={trip.currencyCode}
                   onClick={() => navigate(`/trip/${trip.id}/expense/${e.id}`)}
                 />
               ))
@@ -286,12 +328,12 @@ export default function Dashboard({ tripId }) {
                   <div className="mb-1.5 flex items-baseline justify-between gap-2 text-sm">
                     <span className="truncate font-semibold">{b.label}</span>
                     <span className="shrink-0 tabular-nums text-mute">
-                      {formatINR(b.amount)} · {Math.round(b.pct)}%
+                      {money(b.amount)} · {Math.round(b.pct)}%
                     </span>
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-sunken">
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-brand to-mint"
+                      className="h-full rounded-full bg-sun"
                       style={{ width: `${Math.max(b.pct, 2)}%` }}
                     />
                   </div>
@@ -304,17 +346,20 @@ export default function Dashboard({ tripId }) {
 
       <Sheet open={menuOpen} onClose={() => setMenuOpen(false)} title="Trip options">
         <div className="flex flex-col">
-          <button className={menuItem} onClick={() => { setMenuOpen(false); navigate(`/trip/${trip.id}/settlement`) }}>
-            <Wallet size={20} className="text-brand" /> View settlement
+          <button className={menuItem} onClick={() => { setMenuOpen(false); navigate(completed ? `/trip/${trip.id}/settlement` : `/trip/${trip.id}/status`) }}>
+            <Wallet size={20} className="text-accent" /> {completed ? 'View final settlement' : 'Current status'}
+          </button>
+          <button className={menuItem} onClick={() => { setMenuOpen(false); navigate(`/trip/${trip.id}/members`) }}>
+            <UserCog size={20} className="text-accent" /> Manage members
           </button>
           <button className={menuItem} onClick={onShare}>
-            <Share2 size={20} className="text-brand" /> Share settlement summary
+            <Share2 size={20} className="text-accent" /> Share settlement summary
           </button>
           <button className={menuItem} onClick={() => { exportTripCsv(trip, stats); setMenuOpen(false); toast('CSV downloaded') }}>
-            <FileSpreadsheet size={20} className="text-brand" /> Export summary as CSV
+            <FileSpreadsheet size={20} className="text-accent" /> Export summary as CSV
           </button>
           <button className={menuItem} onClick={() => { exportBackupJson([trip], nameKey(trip.name).replace(/\W+/g, '-')); setMenuOpen(false); toast('Backup downloaded') }}>
-            <FileJson size={20} className="text-brand" /> Download trip backup (JSON)
+            <FileJson size={20} className="text-accent" /> Download trip backup (JSON)
           </button>
           <button className={`${menuItem} text-neg`} onClick={() => { setMenuOpen(false); setConfirm('delete') }}>
             <Trash2 size={20} /> Delete trip
@@ -353,14 +398,14 @@ export default function Dashboard({ tripId }) {
           <label htmlFor="rename" className="label">
             Name
           </label>
-          <input
+          <TitleInput
             id="rename"
             className={`input ${renameError ? 'input-error' : ''}`}
             value={renameValue}
             maxLength={40}
             autoFocus
-            onChange={(e) => {
-              setRenameValue(e.target.value)
+            onChange={(v) => {
+              setRenameValue(v)
               setRenameError('')
             }}
           />

@@ -14,7 +14,7 @@ export function InstallCard({ always = false }) {
   return (
     <div className="card flex flex-col gap-3 p-4">
       <div className="flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-brand-soft text-brand">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-brand-soft text-accent">
           <Download size={20} />
         </div>
         <div>
@@ -29,7 +29,7 @@ export function InstallCard({ always = false }) {
       )}
       {!canPrompt && ios && (
         <p className="flex flex-wrap items-center gap-1.5 text-sm text-mute">
-          Tap <Share size={16} className="text-brand" /> Share, then <SquarePlus size={16} className="text-brand" /> Add to
+          Tap <Share size={16} className="text-accent" /> Share, then <SquarePlus size={16} className="text-accent" /> Add to
           Home Screen.
         </p>
       )}

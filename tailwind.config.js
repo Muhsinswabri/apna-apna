@@ -5,35 +5,42 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['"Plus Jakarta Sans Variable"', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+        sans: ['"Inter Tight Variable"', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
       },
       colors: {
         bg: 'rgb(var(--c-bg) / <alpha-value>)',
         surface: 'rgb(var(--c-surface) / <alpha-value>)',
         sunken: 'rgb(var(--c-sunken) / <alpha-value>)',
         line: 'rgb(var(--c-line) / <alpha-value>)',
+        edge: 'rgb(var(--c-edge) / <alpha-value>)',
         ink: 'rgb(var(--c-ink) / <alpha-value>)',
         mute: 'rgb(var(--c-mute) / <alpha-value>)',
+        // brand = black for primary fills. accent = text highlight colour. sun = lime highlight.
         brand: 'rgb(var(--c-brand) / <alpha-value>)',
+        'brand-deep': 'rgb(var(--c-brand-deep) / <alpha-value>)',
         'brand-soft': 'rgb(var(--c-brand-soft) / <alpha-value>)',
         'on-brand': 'rgb(var(--c-on-brand) / <alpha-value>)',
-        mint: 'rgb(var(--c-mint) / <alpha-value>)',
+        accent: 'rgb(var(--c-accent) / <alpha-value>)',
+        sun: 'rgb(var(--c-sun) / <alpha-value>)',
         lav: 'rgb(var(--c-lav) / <alpha-value>)',
+        sky: 'rgb(var(--c-sky) / <alpha-value>)',
+        mint: 'rgb(var(--c-mint) / <alpha-value>)',
         pos: 'rgb(var(--c-pos) / <alpha-value>)',
         'pos-soft': 'rgb(var(--c-pos-soft) / <alpha-value>)',
         neg: 'rgb(var(--c-neg) / <alpha-value>)',
         'neg-soft': 'rgb(var(--c-neg-soft) / <alpha-value>)',
       },
       boxShadow: {
-        card: '0 1px 2px rgb(24 34 48 / 0.04), 0 8px 24px rgb(24 34 48 / 0.06)',
-        float: '0 10px 28px rgb(22 119 255 / 0.32)',
-        nav: '0 -4px 24px rgb(24 34 48 / 0.08)',
+        card: '0 1px 2px rgb(0 0 0 / 0.03), 0 8px 24px rgb(0 0 0 / 0.05)',
+        pop: '0 6px 16px rgb(0 0 0 / 0.18)',
+        'pop-sm': '0 1px 2px rgb(0 0 0 / 0.05)',
+        nav: '0 10px 30px rgb(0 0 0 / 0.12)',
       },
       keyframes: {
         rise: { from: { opacity: 0, transform: 'translateY(10px)' }, to: { opacity: 1, transform: 'none' } },
         sheet: { from: { transform: 'translateY(100%)' }, to: { transform: 'none' } },
         fade: { from: { opacity: 0 }, to: { opacity: 1 } },
-        float: { '0%,100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-6px)' } },
+        float: { '0%,100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-5px)' } },
       },
       animation: {
         rise: 'rise .3s ease-out both',

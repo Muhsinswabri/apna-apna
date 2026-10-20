@@ -45,7 +45,8 @@ describe('trip stats - spec example', () => {
     const s = computeTripStats(trip)
     expect(s.total).toBe(R(12000))
     expect(s.equalShare).toBe(R(3000))
-    expect(s.byId[ids.m]).toMatchObject({ paid: R(6000), allocated: R(3000), equalShare: R(3000), balance: R(3000) })
+    expect(s.equalShareMeaningful).toBe(true)
+    expect(s.byId[ids.m]).toMatchObject({ paid: R(6000), allocated: R(3000), balance: R(3000) })
     expect(s.byId[ids.n].balance).toBe(-R(1000))
     expect(s.byId[ids.u].balance).toBe(R(1000))
     expect(s.byId[ids.r]).toMatchObject({ paid: 0, balance: -R(3000) })
@@ -58,20 +59,32 @@ describe('trip stats - spec example', () => {
 })
 
 describe('trip stats - mixed participants', () => {
-  it('allocated share differs from overall equal share; settlement uses overall', () => {
+  it('settlement uses actual allocations, not an overall equal share', () => {
     const { trip, ids, add } = setup()
     add('Taxi', 1000, ids.m, [ids.m, ids.n]) // only 2 of 4
     add('Dinner', 2000, ids.n) // all
     add('Tickets', 1000, ids.m) // same payer again
     const s = computeTripStats(trip)
     expect(s.total).toBe(R(4000))
+    expect(s.equalShare).toBe(R(1000)) // informational only
     expect(s.byId[ids.m].paid).toBe(R(2000))
     expect(s.byId[ids.m].allocated).toBe(R(500) + R(500) + R(250))
     expect(s.byId[ids.u].allocated).toBe(R(500) + R(250))
-    expect(s.byId[ids.m].equalShare).toBe(R(1000))
-    expect(s.byId[ids.m].balance).toBe(R(1000))
-    expect(s.byId[ids.n].balance).toBe(R(1000))
-    expect(s.byId[ids.u].balance).toBe(-R(1000))
+    expect(s.byId[ids.m].balance).toBe(R(2000) - R(1250))
+    expect(s.byId[ids.n].balance).toBe(R(2000) - R(1250))
+    expect(s.byId[ids.u].balance).toBe(-R(750))
+    expect(s.byId[ids.r].balance).toBe(-R(750))
+    expect(s.balanceSum).toBe(0)
+  })
+
+  it('brief example: Muhsin pays 900 for Niyas and Rafi only', () => {
+    const trip = createTrip({ name: 'T', memberNames: ['Muhsin', 'Niyas', 'Rafi'] })
+    const [m, n, r] = trip.members.map((x) => x.id)
+    trip.expenses.push(createExpense(trip, { title: 'Gift', amount: R(900), payerId: m, participantIds: [n, r] }))
+    const s = computeTripStats(trip)
+    expect(s.byId[m]).toMatchObject({ paid: R(900), allocated: 0, balance: R(900) })
+    expect(s.byId[n].balance).toBe(-R(450))
+    expect(s.byId[r].balance).toBe(-R(450))
     expect(s.balanceSum).toBe(0)
   })
 
@@ -102,7 +115,7 @@ describe('uneven paise', () => {
     const { trip, ids } = setup()
     trip.expenses.push(createExpense(trip, { title: 'X', amount: 1001, payerId: ids.m, participantIds: Object.values(ids) }))
     const s = computeTripStats(trip)
-    expect(s.rows.map((r) => r.equalShare)).toEqual([251, 250, 250, 250])
+    expect(s.rows.map((r) => r.allocated)).toEqual([251, 250, 250, 250])
     expect(s.balanceSum).toBe(0)
   })
 })
@@ -123,7 +136,8 @@ describe('edit and delete recalculate everything', () => {
     expect(s.byId[ids.n].paid).toBe(R(8000))
     expect(s.byId[ids.m].paid).toBe(0)
     expect(s.byId[ids.m].allocated).toBe(R(4000))
-    expect(s.byId[ids.r].balance).toBe(-R(2000))
+    expect(s.byId[ids.r].balance).toBe(0) // no longer a participant, owes nothing
+    expect(s.byId[ids.m].balance).toBe(-R(4000))
     expect(s.balanceSum).toBe(0)
     expect(trip.expenses[0].createdAt).toBeLessThanOrEqual(trip.expenses[0].updatedAt)
   })

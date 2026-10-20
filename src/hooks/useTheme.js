@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { loadTheme, saveTheme } from '../lib/storage.js'
 
-const META_COLORS = { light: '#1677FF', dark: '#0B111E' }
+const META_COLORS = { light: '#FFFFFF', dark: '#0C0C0B' }
 
 function resolve(pref) {
   if (pref === 'light' || pref === 'dark') return pref

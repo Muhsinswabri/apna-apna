@@ -1,15 +1,11 @@
-import { toPaise } from './currency.js'
+import { isCurrencyCode } from './currencies.js'
+import { maxMinor, toMinor } from './currency.js'
+import { nameKey, normalizeName } from './text.js'
 
+export { nameKey, normalizeName }
+
+export const MIN_MEMBERS = 2
 export const MAX_MEMBERS = 30
-export const MAX_AMOUNT_PAISE = 10_000_000_000 // 10 crore rupees per expense
-
-export function normalizeName(name) {
-  return String(name ?? '').trim().replace(/\s+/g, ' ')
-}
-
-export function nameKey(name) {
-  return normalizeName(name).toLowerCase()
-}
 
 /** Indexes of names that duplicate an earlier name (case/space-insensitive). */
 export function findDuplicateIndexes(names) {
@@ -25,16 +21,24 @@ export function findDuplicateIndexes(names) {
 }
 
 /**
- * @returns {{ok: boolean, nameError?: string, countError?: string, memberErrors: Record<number,string>}}
+ * Business rules for creating a trip. The UI and createTrip() both use this.
+ * @returns {{ok: boolean, nameError?: string, currencyError?: string, countError?: string, memberErrors: Record<number,string>}}
  */
-export function validateTripSetup({ name, memberCount, memberNames }) {
+export function validateTripSetup({ name, currencyCode, memberCount, memberNames }) {
   const result = { ok: true, memberErrors: {} }
   if (!normalizeName(name)) {
     result.nameError = 'Give your trip a name'
     result.ok = false
   }
-  if (!Number.isInteger(memberCount) || memberCount < 1 || memberCount > MAX_MEMBERS) {
-    result.countError = `Members must be between 1 and ${MAX_MEMBERS}`
+  if (!isCurrencyCode(currencyCode)) {
+    result.currencyError = 'Choose a currency from the list'
+    result.ok = false
+  }
+  if (!Number.isInteger(memberCount) || memberCount < MIN_MEMBERS || memberCount > MAX_MEMBERS) {
+    result.countError = `A trip needs between ${MIN_MEMBERS} and ${MAX_MEMBERS} members`
+    result.ok = false
+  } else if (memberNames.length !== memberCount) {
+    result.countError = 'Enter a name for every member'
     result.ok = false
   }
   const dupes = findDuplicateIndexes(memberNames)
@@ -46,7 +50,7 @@ export function validateTripSetup({ name, memberCount, memberNames }) {
   return result
 }
 
-/** Validate a member rename against the other members of the same trip. */
+/** Validate a member name against the other members of the same trip (departed ones included). */
 export function validateMemberName(name, otherNames) {
   const clean = normalizeName(name)
   if (!clean) return 'Name is required'
@@ -55,18 +59,22 @@ export function validateMemberName(name, otherNames) {
 }
 
 /**
+ * @param {object} p
+ * @param {string[]} p.eligibleIds members who may pay for / share this expense
  * @returns {{ok: boolean, errors: Record<string,string>, amount: number|null}}
  */
-export function validateExpense({ title, amountInput, payerId, participantIds, memberIds }) {
+export function validateExpense({ title, amountInput, currencyCode, payerId, participantIds, eligibleIds }) {
   const errors = {}
   if (!normalizeName(title)) errors.title = 'Enter what this expense was for'
-  const amount = toPaise(amountInput)
-  if (amount === null) errors.amount = 'Enter a valid amount (up to 2 decimals)'
+  const amount = toMinor(amountInput, currencyCode)
+  if (amount === null) errors.amount = 'Enter a valid amount for this currency'
   else if (amount <= 0) errors.amount = 'Amount must be greater than zero'
-  else if (amount > MAX_AMOUNT_PAISE) errors.amount = 'Amount is too large'
-  if (!payerId || !memberIds.includes(payerId)) errors.payer = 'Select who paid'
-  if (!participantIds.length || participantIds.some((id) => !memberIds.includes(id))) {
-    errors.participants = 'Select at least one person to share this expense'
+  else if (amount > maxMinor(currencyCode)) errors.amount = 'Amount is too large'
+  if (!payerId) errors.payer = 'Select who paid'
+  else if (!eligibleIds.includes(payerId)) errors.payer = 'This person was not on the trip at that time'
+  if (!participantIds.length) errors.participants = 'Select at least one person to share this expense'
+  else if (participantIds.some((id) => !eligibleIds.includes(id))) {
+    errors.participants = 'Someone selected was not on the trip at that time'
   }
   return { ok: Object.keys(errors).length === 0, errors, amount: errors.amount ? null : amount }
 }

@@ -1,5 +1,5 @@
 import { fileDate, formatDateTime } from './dates.js'
-import { formatINR, paiseToPlain } from './currency.js'
+import { formatMoney, minorToPlain } from './currency.js'
 import { sortExpensesNewestFirst } from './model.js'
 import { buildBackup } from './storage.js'
 
@@ -17,55 +17,65 @@ export function safeFileName(name) {
 }
 
 export function tripToCsv(trip, stats) {
+  const code = trip.currencyCode
+  const plain = (n) => minorToPlain(n, code)
   const nameOf = (id) => stats.byId[id]?.name ?? 'Unknown'
   const lines = []
   lines.push(csvRow(['Apna Apna trip summary']))
   lines.push(csvRow(['Trip', trip.name]))
+  lines.push(csvRow(['Currency', code]))
   lines.push(csvRow(['Status', trip.status === 'completed' ? 'Completed' : 'Ongoing']))
-  lines.push(csvRow(['Total expenses (INR)', paiseToPlain(stats.total)]))
-  lines.push(csvRow(['Members', stats.memberCount]))
-  lines.push(csvRow(['Equal share per member (INR)', paiseToPlain(stats.equalShare)]))
+  lines.push(csvRow([`Total expenses (${code})`, plain(stats.total)]))
+  lines.push(csvRow(['Active members', stats.activeCount]))
+  lines.push(csvRow(['Departed members', stats.leftCount]))
   lines.push('')
   lines.push(csvRow(['Expenses']))
-  lines.push(csvRow(['Date and time', 'Title', 'Amount (INR)', 'Paid by', 'Participants and shares (INR)', 'Highest share per participant (INR)']))
+  lines.push(csvRow(['Date and time', 'Title', 'Category', `Amount (${code})`, 'Paid by', `Participants and shares (${code})`]))
   sortExpensesNewestFirst(trip.expenses).forEach((e) => {
-    const share = Math.max(...Object.values(e.allocations))
     lines.push(
       csvRow([
         formatDateTime(e.createdAt),
         e.title,
-        paiseToPlain(e.amount),
+        e.category,
+        plain(e.amount),
         nameOf(e.payerId),
         Object.entries(e.allocations)
-          .map(([id, paise]) => `${nameOf(id)} ${paiseToPlain(paise)}`)
+          .map(([id, minor]) => `${nameOf(id)} ${plain(minor)}`)
           .join('; '),
-        paiseToPlain(share),
       ]),
     )
   })
   lines.push('')
   lines.push(csvRow(['Members']))
-  lines.push(csvRow(['Member', 'Paid (INR)', 'Allocated share (INR)', 'Equal share (INR)', 'Final balance (INR)']))
+  lines.push(csvRow(['Member', 'Status', `Paid (${code})`, `Allocated share (${code})`, `Balance (${code})`]))
   stats.rows.forEach((r) => {
-    lines.push(csvRow([r.name, paiseToPlain(r.paid), paiseToPlain(r.allocated), paiseToPlain(r.equalShare), paiseToPlain(r.balance)]))
+    lines.push(csvRow([r.name, r.active ? 'Active' : 'Left', plain(r.paid), plain(r.allocated), plain(r.balance)]))
   })
   lines.push('')
   lines.push(csvRow(['Who pays whom']))
-  lines.push(csvRow(['From', 'To', 'Amount (INR)']))
-  stats.settlements.forEach((s) => lines.push(csvRow([nameOf(s.from), nameOf(s.to), paiseToPlain(s.amount)])))
+  lines.push(csvRow(['From', 'To', `Amount (${code})`]))
+  stats.settlements.forEach((s) => lines.push(csvRow([nameOf(s.from), nameOf(s.to), plain(s.amount)])))
   return '﻿' + lines.join('\r\n')
 }
 
 /** Plain-text settlement summary for sharing. */
 export function settlementText(trip, stats) {
+  const money = (n) => formatMoney(n, trip.currencyCode)
   const nameOf = (id) => stats.byId[id]?.name ?? 'Unknown'
-  const lines = [`${trip.name} - Apna Apna`, `Total: ${formatINR(stats.total)} | ${stats.memberCount} members | ${formatINR(stats.equalShare)} each`, '']
-  lines.push('Paid:')
-  stats.rows.forEach((r) => lines.push(`- ${r.name}: ${formatINR(r.paid)}`))
+  const lines = [
+    `${trip.name} - Apna Apna`,
+    `${trip.status === 'completed' ? 'Final settlement' : 'Current status'} | ${trip.currencyCode}`,
+    `Total: ${money(stats.total)} | ${stats.expenseCount} expenses | ${stats.memberCount} members`,
+    '',
+  ]
+  lines.push('Paid / share / balance:')
+  stats.rows.forEach((r) =>
+    lines.push(`- ${r.name}${r.active ? '' : ' (left)'}: paid ${money(r.paid)}, share ${money(r.allocated)}, balance ${money(r.balance)}`),
+  )
   lines.push('')
   if (stats.settlements.length) {
     lines.push('Who pays whom:')
-    stats.settlements.forEach((s) => lines.push(`- ${nameOf(s.from)} pays ${nameOf(s.to)} ${formatINR(s.amount)}`))
+    stats.settlements.forEach((s) => lines.push(`- ${nameOf(s.from)} pays ${nameOf(s.to)} ${money(s.amount)}`))
   } else {
     lines.push('Everyone is settled.')
   }

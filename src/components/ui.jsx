@@ -1,4 +1,4 @@
-import { formatSignedINR } from '../lib/currency.js'
+import { formatSignedMoney } from '../lib/currency.js'
 
 export function Logo({ size = 40 }) {
   // 192px source is sharp up to ~96 CSS px on 2x screens; larger sizes use the 512px file.
@@ -17,12 +17,12 @@ export function Logo({ size = 40 }) {
 }
 
 const AVATAR_TONES = [
-  'bg-[#D7E8FF] text-[#1668DC] dark:bg-[#183769] dark:text-[#8DBEFF]',
-  'bg-[#EAD8FF] text-[#7B3FD1] dark:bg-[#3E2E60] dark:text-[#CDA9FF]',
-  'bg-[#CFF6EA] text-[#0B8F6B] dark:bg-[#12433A] dark:text-[#5BE3BC]',
-  'bg-[#FFE4D1] text-[#C25A12] dark:bg-[#4A2E1B] dark:text-[#FFB27A]',
-  'bg-[#FFD9E3] text-[#C2335F] dark:bg-[#4A1F2D] dark:text-[#FF9DB8]',
-  'bg-[#FFF2BF] text-[#9A7400] dark:bg-[#473A12] dark:text-[#F4CF55]',
+  'bg-[#E3F5A0] text-[#3C4A00] dark:bg-[#434F12] dark:text-[#D9F26E]',
+  'bg-[#ECECE7] text-[#2B2B2B] dark:bg-[#34342F] dark:text-[#DADAD2]',
+  'bg-[#DCEAFA] text-[#25507C] dark:bg-[#1E3550] dark:text-[#A5C8EE]',
+  'bg-[#F8E2D4] text-[#8A4A22] dark:bg-[#4A2E1B] dark:text-[#FFB27A]',
+  'bg-[#E6E0F6] text-[#4F3F90] dark:bg-[#322A55] dark:text-[#C3B6F0]',
+  'bg-[#D9F0DC] text-[#23683A] dark:bg-[#1F3F2B] dark:text-[#8FD6A4]',
 ]
 
 export function Avatar({ name, index = 0, size = 40 }) {
@@ -39,7 +39,7 @@ export function Avatar({ name, index = 0, size = 40 }) {
 }
 
 /** Bar colours matching the avatar tones, for per-member contribution bars. */
-export const MEMBER_BAR_COLORS = ['#1677FF', '#B57BFF', '#19D3A2', '#FF9A4D', '#FF6F95', '#F2C230']
+export const MEMBER_BAR_COLORS = ['#111111', '#CDF246', '#8AA3B8', '#E0A27A', '#9B8FD0', '#6FBF8A']
 
 /** Who has paid what, as a stacked bar. Built from real per-member totals. */
 export function ContributionBar({ rows }) {
@@ -61,6 +61,11 @@ export function ContributionBar({ rows }) {
         )}
     </div>
   )
+}
+
+/** Small "Left" tag for members who have left the trip. */
+export function LeftTag() {
+  return <span className="rounded-full bg-sunken px-2 py-0.5 text-[11px] font-bold text-mute">Left</span>
 }
 
 export function StatusBadge({ status }) {
@@ -87,7 +92,7 @@ export function BalanceBadge({ balance, compact = false }) {
     <span
       className={`rounded-full px-2.5 py-1 text-xs font-bold ${receive ? 'bg-pos-soft text-pos' : 'bg-neg-soft text-neg'}`}
     >
-      {compact ? (receive ? 'Gets back' : 'Owes') : receive ? 'Should receive' : 'Needs to pay'}
+      {compact ? (receive ? 'Gets back' : 'Owes') : receive ? 'To receive' : 'To pay'}
     </span>
   )
 }
@@ -98,8 +103,12 @@ export function balanceTone(balance) {
   return 'text-mute'
 }
 
-export function SignedAmount({ balance, className = '' }) {
-  return <span className={`font-bold tabular-nums ${balanceTone(balance)} ${className}`}>{formatSignedINR(balance)}</span>
+export function SignedAmount({ balance, currency, className = '' }) {
+  return (
+    <span className={`font-bold tabular-nums ${balanceTone(balance)} ${className}`}>
+      {formatSignedMoney(balance, currency)}
+    </span>
+  )
 }
 
 export function FieldError({ children, id }) {

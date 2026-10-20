@@ -2,23 +2,28 @@ import { useMemo, useRef, useState } from 'react'
 import { CalendarClock, Check, Flag, RotateCcw } from 'lucide-react'
 import { goBack, navigate } from '../hooks/useRoute.js'
 import { useTrips } from '../hooks/useTrips.jsx'
-import { formatINR, paiseToInput, toPaise } from '../lib/currency.js'
+import { resolveCurrency } from '../lib/currencies.js'
+import { formatMoney, minorToInput, toMinor } from '../lib/currency.js'
 import { formatDateTime } from '../lib/dates.js'
 import { allocateExpense } from '../lib/calculations.js'
-import { createExpense, editExpense, touch } from '../lib/model.js'
+import { createExpense, editExpense, eligibleForExpense, touch } from '../lib/model.js'
 import { validateExpense } from '../lib/validation.js'
 import { EmptyState } from '../components/EmptyState.jsx'
 import { Page, PageHeader } from '../components/PageHeader.jsx'
+import { Sheet } from '../components/Sheet.jsx'
+import { TitleInput } from '../components/TitleInput.jsx'
 import { useToast } from '../components/Toast.jsx'
 import { Avatar, FieldError } from '../components/ui.jsx'
 
 const SUGGESTIONS = ['Petrol', 'Hotel', 'Food', 'Tickets', 'Shopping', 'Taxi', 'Other']
+const CATEGORIES = ['Food', 'Stay', 'Travel', 'Fuel', 'Tickets', 'Shopping', 'Other']
 
-/** Keep digits and a single decimal point, at most 2 decimals. */
-function cleanAmountInput(value) {
+/** Keep digits and (if the currency has decimals) a single decimal point. */
+function cleanAmountInput(value, digits) {
   let v = value.replace(/[^\d.]/g, '')
+  if (digits === 0) return v.replace(/\./g, '').replace(/^0+(?=\d)/, '').slice(0, 13)
   const dot = v.indexOf('.')
-  if (dot !== -1) v = v.slice(0, dot + 1) + v.slice(dot + 1).replace(/\./g, '').slice(0, 2)
+  if (dot !== -1) v = v.slice(0, dot + 1) + v.slice(dot + 1).replace(/\./g, '').slice(0, digits)
   return v.replace(/^0+(?=\d)/, '').slice(0, 13)
 }
 
@@ -31,18 +36,24 @@ export default function ExpenseForm({ tripId, expenseId }) {
   const editing = Boolean(expenseId)
   const backTo = trip ? (editing ? `/trip/${tripId}/expense/${expenseId}` : `/trip/${tripId}`) : '/'
 
-  const [title, setTitle] = useState(existing?.title ?? '')
-  const [amountInput, setAmountInput] = useState(existing ? paiseToInput(existing.amount) : '')
-  const [payerId, setPayerId] = useState(existing?.payerId ?? '')
-  const [participantIds, setParticipantIds] = useState(
-    () => existing?.participantIds ?? trip?.members.map((m) => m.id) ?? [],
-  )
-  const [errors, setErrors] = useState({})
   const [openedAt] = useState(() => Date.now())
+  const eligible = useMemo(() => (trip ? eligibleForExpense(trip, existing, openedAt) : []), [trip, existing, openedAt])
+  const eligibleIds = useMemo(() => eligible.map((m) => m.id), [eligible])
+
+  const [title, setTitle] = useState(existing?.title ?? '')
+  const [category, setCategory] = useState(existing?.category ?? '')
+  const [amountInput, setAmountInput] = useState(existing && trip ? minorToInput(existing.amount, trip.currencyCode) : '')
+  const [payerId, setPayerId] = useState(existing?.payerId ?? '')
+  // New expenses start with everyone currently on the trip selected.
+  const [participantIds, setParticipantIds] = useState(() => existing?.participantIds ?? eligible.map((m) => m.id))
+  const [errors, setErrors] = useState({})
+  const [saved, setSaved] = useState(null) // summary shown in the confirmation sheet
   const recordedAt = existing?.createdAt ?? openedAt
 
-  const memberIds = useMemo(() => trip?.members.map((m) => m.id) ?? [], [trip])
-  const amount = toPaise(amountInput)
+  const currency = resolveCurrency(trip?.currencyCode)
+  const money = (n) => formatMoney(n, currency.code)
+  const amount = toMinor(amountInput, currency.code)
+
   const preview = useMemo(() => {
     if (!trip || !amount || !participantIds.length) return null
     const alloc = allocateExpense(amount, participantIds, trip.members)
@@ -102,16 +113,16 @@ export default function ExpenseForm({ tripId, expenseId }) {
     clearError('participants')
     setParticipantIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
   }
-  const allSelected = participantIds.length === memberIds.length
+  const allSelected = eligibleIds.every((id) => participantIds.includes(id))
   const toggleAll = () => {
     clearError('participants')
-    setParticipantIds(allSelected ? [] : memberIds)
+    setParticipantIds(allSelected ? [] : eligibleIds)
   }
 
   const onSubmit = (e) => {
     e.preventDefault()
     if (submitting.current) return
-    const result = validateExpense({ title, amountInput, payerId, participantIds, memberIds })
+    const result = validateExpense({ title, amountInput, currencyCode: currency.code, payerId, participantIds, eligibleIds })
     setErrors(result.errors)
     if (!result.ok) {
       // Save sits at the bottom, errors can be off-screen: say so and scroll to the first one.
@@ -121,20 +132,39 @@ export default function ExpenseForm({ tripId, expenseId }) {
       )
       return
     }
-    submitting.current = true // guards against double taps until we leave this screen
-    const values = { title, amount: result.amount, payerId, participantIds }
-    if (editing) {
-      updateTrip(tripId, (t) => ({
-        ...t,
-        expenses: t.expenses.map((x) => (x.id === expenseId ? editExpense(t, x, values) : x)),
-      }))
-      toast('Expense updated')
-    } else {
-      updateTrip(tripId, (t) => ({ ...t, expenses: [...t.expenses, createExpense(t, values)] }))
-      toast('Expense saved')
+    submitting.current = true // guards against double taps until the sheet is dismissed
+    const values = { title, category, amount: result.amount, payerId, participantIds }
+    let expense = null
+    let ok = false
+    try {
+      ok = updateTrip(tripId, (t) => {
+        if (editing) {
+          expense = editExpense(t, t.expenses.find((x) => x.id === expenseId), values)
+          return { ...t, expenses: t.expenses.map((x) => (x.id === expenseId ? expense : x)) }
+        }
+        expense = createExpense(t, values)
+        return { ...t, expenses: [...t.expenses, expense] }
+      })
+    } catch (err) {
+      submitting.current = false
+      toast(err.message || 'Could not save this expense', 'error')
+      return
     }
-    goBack(backTo)
+    if (!ok) {
+      // Never claim success when the device refused to store it.
+      submitting.current = false
+      toast('Could not save. Your device storage may be full.', 'error')
+      return
+    }
+    setSaved({ expense, editing })
   }
+
+  const done = () => goBack(backTo)
+
+  const nameOf = (id) => trip.members.find((m) => m.id === id)?.name ?? 'Unknown'
+  const savedAllocs = saved ? Object.entries(saved.expense.allocations) : []
+  const savedEqual = saved ? new Set(savedAllocs.map(([, v]) => v)).size <= 1 : true
+  const hasDeparted = trip.members.some((m) => m.leftAt)
 
   return (
     <>
@@ -145,7 +175,7 @@ export default function ExpenseForm({ tripId, expenseId }) {
             <label htmlFor="exp-title" className="label">
               What was it for?
             </label>
-            <input
+            <TitleInput
               id="exp-title"
               className={`input ${errors.title ? 'input-error' : ''}`}
               placeholder="e.g. Petrol"
@@ -153,8 +183,8 @@ export default function ExpenseForm({ tripId, expenseId }) {
               maxLength={60}
               autoComplete="off"
               autoFocus={!editing}
-              onChange={(e) => {
-                setTitle(e.target.value)
+              onChange={(v) => {
+                setTitle(v)
                 clearError('title')
               }}
               aria-invalid={Boolean(errors.title)}
@@ -179,21 +209,22 @@ export default function ExpenseForm({ tripId, expenseId }) {
 
           <div className="card p-5">
             <label htmlFor="exp-amount" className="label">
-              Amount
+              Amount <span className="font-semibold text-mute/70">({currency.code})</span>
             </label>
             <div className="relative">
               <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-xl font-bold text-mute">
-                ₹
+                {currency.symbol}
               </span>
               <input
                 id="exp-amount"
-                className={`input !pl-10 text-2xl font-extrabold tabular-nums ${errors.amount ? 'input-error' : ''}`}
-                inputMode="decimal"
+                className={`input text-2xl font-bold tabular-nums ${errors.amount ? 'input-error' : ''}`}
+                style={{ paddingLeft: `${Math.max(2.5, 1.2 + currency.symbol.length * 0.8)}rem` }}
+                inputMode={currency.digits === 0 ? 'numeric' : 'decimal'}
                 placeholder="0"
                 value={amountInput}
                 autoComplete="off"
                 onChange={(e) => {
-                  setAmountInput(cleanAmountInput(e.target.value))
+                  setAmountInput(cleanAmountInput(e.target.value, currency.digits))
                   clearError('amount')
                 }}
                 aria-invalid={Boolean(errors.amount)}
@@ -202,11 +233,42 @@ export default function ExpenseForm({ tripId, expenseId }) {
             <FieldError>{errors.amount}</FieldError>
           </div>
 
+          <div className="card p-5">
+            <label htmlFor="exp-category" className="label">
+              Category <span className="font-semibold text-mute/70">(optional)</span>
+            </label>
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Categories">
+              {CATEGORIES.map((c) => {
+                const on = category.toLowerCase() === c.toLowerCase()
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    aria-pressed={on}
+                    className={`chip ${on ? 'chip-on' : ''}`}
+                    onClick={() => setCategory(on ? '' : c)}
+                  >
+                    {c}
+                  </button>
+                )
+              })}
+            </div>
+            <TitleInput
+              id="exp-category"
+              className="input mt-3"
+              placeholder="Or type your own category"
+              value={category}
+              maxLength={30}
+              autoComplete="off"
+              onChange={setCategory}
+            />
+          </div>
+
           <fieldset className="card p-5">
             <legend className="label float-left">Paid by</legend>
             <div className="clear-both" />
             <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Paid by">
-              {trip.members.map((m, i) => {
+              {eligible.map((m) => {
                 const on = payerId === m.id
                 return (
                   <button
@@ -220,7 +282,7 @@ export default function ExpenseForm({ tripId, expenseId }) {
                       clearError('payer')
                     }}
                   >
-                    <Avatar name={m.name} index={i} size={28} />
+                    <Avatar name={m.name} index={trip.members.indexOf(m)} size={28} />
                     {m.name}
                   </button>
                 )
@@ -232,12 +294,12 @@ export default function ExpenseForm({ tripId, expenseId }) {
           <fieldset className="card p-5">
             <div className="mb-2 flex items-center justify-between">
               <legend className="label !mb-0">Split between</legend>
-              <button type="button" className="text-sm font-semibold text-brand" onClick={toggleAll}>
+              <button type="button" className="text-sm font-semibold text-accent" onClick={toggleAll}>
                 {allSelected ? 'Clear all' : 'Select all'}
               </button>
             </div>
             <div className="flex flex-wrap gap-2" role="group" aria-label="Participants">
-              {trip.members.map((m, i) => {
+              {eligible.map((m) => {
                 const on = participantIds.includes(m.id)
                 return (
                   <button
@@ -247,34 +309,41 @@ export default function ExpenseForm({ tripId, expenseId }) {
                     className={`chip !pl-1.5 ${on ? 'chip-on' : ''}`}
                     onClick={() => toggleParticipant(m.id)}
                   >
-                    <Avatar name={m.name} index={i} size={28} />
+                    <Avatar name={m.name} index={trip.members.indexOf(m)} size={28} />
                     {m.name}
                     {on && <Check size={16} />}
                   </button>
                 )
               })}
             </div>
-            <p className="mt-2 text-sm text-mute">
-              {participantIds.length} of {memberIds.length} selected
+            <p className="mt-2 text-sm font-semibold text-mute">
+              {participantIds.length} of {eligible.length} selected
+            </p>
+            <p className="mt-1 text-xs text-mute">
+              The person who paid does not have to be included. Only the people selected share this cost.
+              {hasDeparted &&
+                (editing
+                  ? ' Only people who were on the trip when this was recorded are listed.'
+                  : ' Members who have left the trip are not listed.')}
             </p>
             <FieldError>{errors.participants}</FieldError>
           </fieldset>
 
           {preview && (
-            <div className="rounded-2xl bg-brand-soft p-4 text-sm text-brand" aria-live="polite">
+            <div className="rounded-2xl bg-brand-soft p-4 text-sm text-accent" aria-live="polite">
               <p className="font-bold">
-                {formatINR(amount)} split {participantIds.length === 1 ? 'to 1 person' : `between ${participantIds.length}`}
+                {money(amount)} split {participantIds.length === 1 ? 'to 1 person' : `between ${participantIds.length}`}
               </p>
               <p>
                 {preview.uneven ? 'About ' : ''}
-                {formatINR(preview.each)} each
-                {preview.uneven ? '. Leftover paise are shared out so the total stays exact.' : ''}
+                {money(preview.each)} {participantIds.length === 1 ? '' : 'each'}
+                {preview.uneven ? '. Leftover amounts are shared out so the total stays exact.' : ''}
               </p>
             </div>
           )}
 
           <div className="flex items-center gap-3 rounded-2xl bg-surface/80 p-4 text-sm shadow-card">
-            <CalendarClock size={20} className="shrink-0 text-brand" />
+            <CalendarClock size={20} className="shrink-0 text-accent" />
             <div>
               <p className="font-bold">{formatDateTime(recordedAt)}</p>
               <p className="text-xs text-mute">
@@ -289,12 +358,57 @@ export default function ExpenseForm({ tripId, expenseId }) {
             <button type="button" className="btn-outline" onClick={() => goBack(backTo)}>
               Cancel
             </button>
-            <button type="submit" className="btn-primary">
+            <button type="submit" className="btn-primary" disabled={Boolean(saved)}>
               {editing ? 'Save changes' : 'Save Expense'}
             </button>
           </div>
         </form>
       </Page>
+
+      <Sheet open={Boolean(saved)} onClose={done} title={saved?.editing ? 'Expense Updated' : 'Expense Added Successfully'}>
+        {saved && (
+          <>
+            <dl className="mb-5 flex flex-col gap-3 rounded-2xl bg-sunken p-4 text-sm">
+              <Row label="Expense" value={saved.expense.title} />
+              {saved.expense.category && <Row label="Category" value={saved.expense.category} />}
+              <Row label="Amount" value={money(saved.expense.amount)} strong />
+              <Row label="Paid by" value={nameOf(saved.expense.payerId)} />
+              <Row label="Participants" value={savedAllocs.map(([id]) => nameOf(id)).join(', ')} />
+              {savedEqual ? (
+                <Row
+                  label="Share per participant"
+                  value={`${money(savedAllocs[0][1])}${savedAllocs.length > 1 ? ' each' : ''}`}
+                />
+              ) : (
+                <div>
+                  <dt className="mb-1 text-mute">Shares (leftover shared out)</dt>
+                  <dd className="flex flex-col gap-1">
+                    {savedAllocs.map(([id, v]) => (
+                      <span key={id} className="flex justify-between font-bold">
+                        <span>{nameOf(id)}</span>
+                        <span className="tabular-nums">{money(v)}</span>
+                      </span>
+                    ))}
+                  </dd>
+                </div>
+              )}
+              <Row label="Date and time" value={formatDateTime(saved.expense.createdAt)} />
+            </dl>
+            <button className="btn-primary w-full" onClick={done} autoFocus>
+              Done
+            </button>
+          </>
+        )}
+      </Sheet>
     </>
+  )
+}
+
+function Row({ label, value, strong }) {
+  return (
+    <div className="flex justify-between gap-4">
+      <dt className="shrink-0 text-mute">{label}</dt>
+      <dd className={`min-w-0 text-right ${strong ? 'text-base font-bold tabular-nums' : 'font-bold'}`}>{value}</dd>
+    </div>
   )
 }

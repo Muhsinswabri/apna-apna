@@ -38,32 +38,48 @@ export function computeTripStats(trip) {
   const total = sum(expenses.map((e) => e.amount))
   const memberCount = members.length
 
-  // Overall equal share: total split across ALL members, leftover paise deterministic.
-  const overallShares = splitEqual(total, members.map((m) => m.id))
-
   const byId = {}
   members.forEach((m) => {
-    byId[m.id] = { id: m.id, name: m.name, paid: 0, allocated: 0, equalShare: overallShares[m.id] ?? 0, balance: 0 }
+    byId[m.id] = {
+      id: m.id,
+      name: m.name,
+      active: !m.leftAt,
+      joinedAt: m.joinedAt,
+      leftAt: m.leftAt ?? null,
+      paid: 0,
+      allocated: 0,
+      balance: 0,
+    }
   })
   expenses.forEach((e) => {
     if (byId[e.payerId]) byId[e.payerId].paid += e.amount
-    Object.entries(e.allocations).forEach(([id, paise]) => {
-      if (byId[id]) byId[id].allocated += paise
+    Object.entries(e.allocations).forEach(([id, minor]) => {
+      if (byId[id]) byId[id].allocated += minor
     })
   })
+  // Balance = what you paid minus what the expenses you took part in cost you.
   members.forEach((m) => {
-    byId[m.id].balance = byId[m.id].paid - byId[m.id].equalShare
+    byId[m.id].balance = byId[m.id].paid - byId[m.id].allocated
   })
 
   const rows = members.map((m) => byId[m.id])
   const balances = Object.fromEntries(rows.map((r) => [r.id, r.balance]))
+  const activeCount = rows.filter((r) => r.active).length
+
+  // An overall equal share only means something for a fixed group: nobody
+  // left, and nobody joined after the first expense was recorded.
+  const firstExpenseAt = expenses.length ? Math.min(...expenses.map((e) => e.createdAt)) : Infinity
+  const fixedGroup = activeCount === memberCount && members.every((m) => m.joinedAt <= firstExpenseAt)
 
   return {
     total,
     expenseCount: expenses.length,
     memberCount,
-    // Headline per-person figure, rounded to the nearest paisa for display.
+    activeCount,
+    leftCount: memberCount - activeCount,
+    // Informational only. Settlement never uses it.
     equalShare: memberCount ? Math.round(total / memberCount) : 0,
+    equalShareMeaningful: fixedGroup && expenses.length > 0,
     rows,
     byId,
     settlements: computeSettlements(balances, members.map((m) => m.id)),
@@ -71,13 +87,14 @@ export function computeTripStats(trip) {
   }
 }
 
-/** Group expenses by (case-insensitive) title for a simple breakdown. */
+/** Group expenses by (case-insensitive) category, or title when there is none, for a simple breakdown. */
 export function computeBreakdown(expenses, topN = 5) {
   const total = sum(expenses.map((e) => e.amount))
   const groups = new Map()
   expenses.forEach((e) => {
-    const key = e.title.trim().toLowerCase()
-    const g = groups.get(key) ?? { label: e.title.trim(), amount: 0, count: 0 }
+    const label = (e.category || e.title).trim()
+    const key = label.toLowerCase()
+    const g = groups.get(key) ?? { label, amount: 0, count: 0 }
     g.amount += e.amount
     g.count += 1
     groups.set(key, g)

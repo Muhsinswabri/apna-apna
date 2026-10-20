@@ -1,9 +1,12 @@
 import { allocateExpense, sum } from './calculations.js'
-import { nameKey, normalizeName } from './validation.js'
+import { DEFAULT_CURRENCY, isCurrencyCode } from './currencies.js'
+import { nameKey, normalizeName } from './text.js'
 
 export const STORAGE_KEY = 'apna_apna_trips'
 export const THEME_KEY = 'apna_apna_theme'
-export const SCHEMA_VERSION = 1
+// v1: trips, fixed members, expenses (INR only).
+// v2: trip.currencyCode, member joinedAt/leftAt/status, expense.category.
+export const SCHEMA_VERSION = 2
 export const BACKUP_APP_ID = 'apna-apna'
 
 export function makeId() {
@@ -53,6 +56,7 @@ export function sanitizeExpense(raw, members, fallbackTime) {
   return {
     id: raw.id,
     title: normalizeName(raw.title) || 'Expense',
+    category: sanitizeCategory(raw.category),
     amount: raw.amount,
     payerId: raw.payerId,
     participantIds,
@@ -60,6 +64,10 @@ export function sanitizeExpense(raw, members, fallbackTime) {
     createdAt,
     updatedAt: isTime(raw.updatedAt) ? raw.updatedAt : createdAt,
   }
+}
+
+function sanitizeCategory(value) {
+  return typeof value === 'string' ? normalizeName(value).slice(0, 30) : ''
 }
 
 /** Validate and repair one trip. Returns null if it cannot be salvaged. */
@@ -79,7 +87,10 @@ export function sanitizeTrip(raw) {
     while (seenNames.has(nameKey(name))) name += ' '.concat('2')
     seenIds.add(m.id)
     seenNames.add(nameKey(name))
-    members.push({ id: m.id, name, createdAt: isTime(m.createdAt) ? m.createdAt : createdAt })
+    // v1 members have no join date: they were there from the start.
+    const joinedAt = isTime(m.joinedAt) ? m.joinedAt : isTime(m.createdAt) ? m.createdAt : createdAt
+    const leftAt = isTime(m.leftAt) && m.leftAt >= joinedAt ? m.leftAt : null
+    members.push({ id: m.id, name, joinedAt, leftAt, status: leftAt ? 'left' : 'active', legacy: !isTime(m.joinedAt) })
   }
   if (!members.length) return null
 
@@ -92,15 +103,26 @@ export function sanitizeTrip(raw) {
     expenses.push(clean)
   }
 
+  // Legacy members count from the trip's start, and never later than the
+  // earliest expense, so no old expense can ever predate a member.
+  const earliest = Math.min(createdAt, ...expenses.map((e) => e.createdAt))
+  const finalMembers = members.map(({ legacy, ...m }) => {
+    if (!legacy) return m
+    const joinedAt = Math.min(m.joinedAt, earliest)
+    return { ...m, joinedAt }
+  })
+
   const completed = raw.status === 'completed'
   return {
     id: raw.id,
-    name: normalizeName(raw.name) || 'Untitled trip',
+    name: normalizeName(raw.name) || 'Untitled Trip',
+    destination: typeof raw.destination === 'string' ? normalizeName(raw.destination).slice(0, 60) : '',
+    currencyCode: isCurrencyCode(raw.currencyCode) ? raw.currencyCode : DEFAULT_CURRENCY,
     createdAt,
     updatedAt: isTime(raw.updatedAt) ? raw.updatedAt : createdAt,
     status: completed ? 'completed' : 'ongoing',
     completedAt: completed && isTime(raw.completedAt) ? raw.completedAt : completed ? createdAt : null,
-    members,
+    members: finalMembers,
     expenses,
   }
 }
@@ -108,7 +130,9 @@ export function sanitizeTrip(raw) {
 /**
  * Bring any stored shape up to the current one.
  * v0 (bare array of trips) -> v1 ({version, trips}).
- * Add new `if (version < N)` steps here when the schema changes.
+ * v1 -> v2: nothing is rewritten here; sanitizeTrip fills the new fields with
+ * safe defaults (INR, members present from the start, no category).
+ * loadTrips keeps a copy of the old data before the first v2 save.
  */
 export function migrate(parsed) {
   let version = 0
@@ -166,9 +190,19 @@ export function loadTrips() {
     backupRaw(store, raw, 'corrupt')
     return { trips: [], status: 'recovered' }
   }
-  const trips = migrated.trips.map(sanitizeTrip).filter(Boolean)
+  const trips = migrated.trips
+    .map((t) => {
+      try {
+        return sanitizeTrip(t)
+      } catch {
+        return null // one unreadable trip must not take the others down
+      }
+    })
+    .filter(Boolean)
   const lostSomething = trips.length !== migrated.trips.length
   if (lostSomething || migrated.fromVersion > SCHEMA_VERSION) backupRaw(store, raw, 'recovered')
+  // Upgrading from an older version: keep the original until the user is safely on the new one.
+  else if (migrated.fromVersion < SCHEMA_VERSION && trips.length) backupRaw(store, raw, `v${migrated.fromVersion}`)
   return { trips, status: lostSomething || migrated.fromVersion > SCHEMA_VERSION ? 'recovered' : 'ok' }
 }
 

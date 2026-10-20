@@ -1,13 +1,18 @@
 import { BedDouble, Car, Fuel, Receipt, ShoppingBag, Ticket, UtensilsCrossed } from 'lucide-react'
 
-// Keyword -> icon + pastel tile. Matched against the expense title, case-insensitive.
+// Keyword -> icon + soft tile. Matched against the category or title, case-insensitive.
+// Tiles stay in the app's lime / grey / pale-blue family.
+const LIME = 'bg-[#E9F6B0] text-[#2B3300] dark:bg-[#434F12] dark:text-[#D9F26E]'
+const GREY = 'bg-[#ECECE7] text-[#2B2B2B] dark:bg-[#34342F] dark:text-[#DADAD2]'
+const BLUE = 'bg-[#DCEAFA] text-[#25507C] dark:bg-[#1E3550] dark:text-[#A5C8EE]'
+
 const CATEGORIES = [
-  { re: /petrol|fuel|diesel|gas|cng/, icon: Fuel, tone: 'bg-[#FFE4D1] text-[#C25A12] dark:bg-[#4A2E1B] dark:text-[#FFB27A]' },
-  { re: /hotel|stay|room|resort|hostel|lodg|airbnb/, icon: BedDouble, tone: 'bg-[#EAD8FF] text-[#7B3FD1] dark:bg-[#3E2E60] dark:text-[#CDA9FF]' },
-  { re: /food|lunch|dinner|breakfast|meal|snack|tea|coffee|restaurant|cafe|biryani|drink/, icon: UtensilsCrossed, tone: 'bg-[#CFF6EA] text-[#0B8F6B] dark:bg-[#12433A] dark:text-[#5BE3BC]' },
-  { re: /ticket|entry|pass|museum|show|ride|park/, icon: Ticket, tone: 'bg-[#FFD9E3] text-[#C2335F] dark:bg-[#4A1F2D] dark:text-[#FF9DB8]' },
-  { re: /shop|gift|souvenir|market|mall/, icon: ShoppingBag, tone: 'bg-[#FFF2BF] text-[#9A7400] dark:bg-[#473A12] dark:text-[#F4CF55]' },
-  { re: /taxi|cab|uber|ola|auto|bus|train|toll|parking|metro|flight/, icon: Car, tone: 'bg-[#D7E8FF] text-[#1668DC] dark:bg-[#183769] dark:text-[#8DBEFF]' },
+  { re: /petrol|fuel|diesel|gas|cng/, icon: Fuel, tone: LIME },
+  { re: /hotel|stay|room|resort|hostel|lodg|airbnb/, icon: BedDouble, tone: BLUE },
+  { re: /food|lunch|dinner|breakfast|meal|snack|tea|coffee|restaurant|cafe|biryani|drink/, icon: UtensilsCrossed, tone: LIME },
+  { re: /ticket|entry|pass|museum|show|ride|park/, icon: Ticket, tone: GREY },
+  { re: /shop|gift|souvenir|market|mall/, icon: ShoppingBag, tone: BLUE },
+  { re: /taxi|cab|uber|ola|auto|bus|train|toll|parking|metro|flight|travel/, icon: Car, tone: GREY },
 ]
 
 const FALLBACK = { icon: Receipt, tone: 'bg-sunken text-mute' }
@@ -21,7 +26,7 @@ export function CategoryIcon({ title, size = 44 }) {
   const { icon: Icon, tone } = categoryFor(title)
   return (
     <span
-      className={`flex shrink-0 items-center justify-center rounded-2xl ${tone}`}
+      className={`flex shrink-0 items-center justify-center rounded-full ${tone}`}
       style={{ width: size, height: size }}
       aria-hidden="true"
     >

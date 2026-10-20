@@ -8,8 +8,13 @@ import {
   sanitizeTrip,
   saveTrips,
 } from './storage.js'
-import { formatINR, formatSignedINR, paiseToInput, toPaise } from './currency.js'
+import { formatMoney, formatSignedMoney, minorToInput, toMinor } from './currency.js'
 import { validateExpense, validateTripSetup } from './validation.js'
+
+const toPaise = (v) => toMinor(v, 'INR')
+const formatINR = (v) => formatMoney(v, 'INR')
+const formatSignedINR = (v) => formatSignedMoney(v, 'INR')
+const paiseToInput = (v) => minorToInput(v, 'INR')
 
 class MemoryStorage {
   constructor() {
@@ -50,6 +55,14 @@ describe('persistence', () => {
     const { trips, status } = loadTrips()
     expect(status).toBe('ok')
     expect(trips).toEqual([t])
+  })
+  it('keeps the optional destination and defaults it for older data', () => {
+    const t = sampleTrip()
+    t.destination = '  Coorg   hills '
+    expect(sanitizeTrip(t).destination).toBe('Coorg Hills')
+    const old = JSON.parse(JSON.stringify(sampleTrip()))
+    delete old.destination
+    expect(sanitizeTrip(old).destination).toBe('')
   })
   it('empty storage', () => {
     expect(loadTrips()).toEqual({ trips: [], status: 'empty' })
@@ -141,18 +154,28 @@ describe('currency', () => {
 
 describe('validation', () => {
   it('rejects duplicate names ignoring case and spacing', () => {
-    const r = validateTripSetup({ name: 'T', memberCount: 3, memberNames: ['Rafi', '  rafi ', 'Muhsin'] })
+    const r = validateTripSetup({ name: 'T', currencyCode: 'INR', memberCount: 3, memberNames: ['Rafi', '  rafi ', 'Muhsin'] })
     expect(r.ok).toBe(false)
     expect(r.memberErrors[1]).toBeTruthy()
     expect(r.memberErrors[0]).toBeUndefined()
   })
   it('requires trip name, member count and names', () => {
-    expect(validateTripSetup({ name: ' ', memberCount: 0, memberNames: [] })).toMatchObject({ ok: false })
-    expect(validateTripSetup({ name: 'T', memberCount: 2, memberNames: ['a', ''] }).memberErrors[1]).toBeTruthy()
-    expect(validateTripSetup({ name: 'T', memberCount: 1, memberNames: ['a'] }).ok).toBe(true)
+    const ok = { name: 'T', currencyCode: 'INR' }
+    expect(validateTripSetup({ ...ok, name: ' ', memberCount: 0, memberNames: [] })).toMatchObject({ ok: false })
+    expect(validateTripSetup({ ...ok, memberCount: 2, memberNames: ['a', ''] }).memberErrors[1]).toBeTruthy()
+    expect(validateTripSetup({ ...ok, memberCount: 2, memberNames: ['a', 'b'] }).ok).toBe(true)
+  })
+  it('never accepts a one-member trip', () => {
+    const r = validateTripSetup({ name: 'T', currencyCode: 'INR', memberCount: 1, memberNames: ['a'] })
+    expect(r.ok).toBe(false)
+    expect(r.countError).toBeTruthy()
+    expect(() => createTrip({ name: 'T', memberNames: ['Solo'] })).toThrow()
+  })
+  it('rejects an unknown currency', () => {
+    expect(validateTripSetup({ name: 'T', currencyCode: 'XXX', memberCount: 2, memberNames: ['a', 'b'] }).currencyError).toBeTruthy()
   })
   it('validates expenses', () => {
-    const base = { title: 'Food', amountInput: '10', payerId: 'a', participantIds: ['a'], memberIds: ['a', 'b'] }
+    const base = { title: 'Food', amountInput: '10', currencyCode: 'INR', payerId: 'a', participantIds: ['a'], eligibleIds: ['a', 'b'] }
     expect(validateExpense(base).ok).toBe(true)
     expect(validateExpense({ ...base, amountInput: '0' }).errors.amount).toBeTruthy()
     expect(validateExpense({ ...base, title: ' ' }).errors.title).toBeTruthy()

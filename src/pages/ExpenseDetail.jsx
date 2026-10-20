@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Pencil, Receipt, Trash2 } from 'lucide-react'
 import { goBack, navigate } from '../hooks/useRoute.js'
 import { useTrips } from '../hooks/useTrips.jsx'
-import { formatINR } from '../lib/currency.js'
+import { formatMoney } from '../lib/currency.js'
 import { formatDateTime } from '../lib/dates.js'
 import { EmptyState } from '../components/EmptyState.jsx'
 import { Page, PageHeader } from '../components/PageHeader.jsx'
@@ -38,6 +38,7 @@ export default function ExpenseDetail({ tripId, expenseId }) {
   }
 
   const completed = trip.status === 'completed'
+  const money = (n) => formatMoney(n, trip.currencyCode)
   const indexOf = (id) => trip.members.findIndex((m) => m.id === id)
   const nameOf = (id) => trip.members[indexOf(id)]?.name ?? 'Unknown'
   const edited = expense.updatedAt - expense.createdAt > 1000
@@ -54,7 +55,7 @@ export default function ExpenseDetail({ tripId, expenseId }) {
       <Page className="flex flex-col gap-5">
         <section className="card p-5">
           <p className="text-sm font-semibold text-mute">{expense.title}</p>
-          <p className="mb-4 text-4xl font-extrabold tabular-nums tracking-tight">{formatINR(expense.amount)}</p>
+          <p className="mb-4 text-4xl font-bold tabular-nums tracking-tight">{money(expense.amount)}</p>
           <dl className="flex flex-col gap-3 text-sm">
             <div className="flex items-center justify-between gap-3">
               <dt className="text-mute">Paid by</dt>
@@ -63,6 +64,12 @@ export default function ExpenseDetail({ tripId, expenseId }) {
                 {nameOf(expense.payerId)}
               </dd>
             </div>
+            {expense.category && (
+              <div className="flex justify-between gap-3">
+                <dt className="text-mute">Category</dt>
+                <dd className="font-bold">{expense.category}</dd>
+              </div>
+            )}
             <div className="flex justify-between gap-3">
               <dt className="text-mute">Date and time</dt>
               <dd className="font-bold">{formatDateTime(expense.createdAt)}</dd>
@@ -76,14 +83,14 @@ export default function ExpenseDetail({ tripId, expenseId }) {
             <div className="flex justify-between gap-3">
               <dt className="text-mute">Shared between</dt>
               <dd className="font-bold">
-                {expense.participantIds.length} of {trip.members.length}
+                {expense.participantIds.length} {expense.participantIds.length === 1 ? 'member' : 'members'}
               </dd>
             </div>
           </dl>
         </section>
 
         <section className="flex flex-col gap-3">
-          <h2 className="section-title px-1">Each person&rsquo;s share</h2>
+          <h2 className="section-title px-1">Participants and their shares</h2>
           <div className="card divide-y divide-line/60">
             {trip.members
               .filter((m) => expense.allocations[m.id] !== undefined)
@@ -91,7 +98,7 @@ export default function ExpenseDetail({ tripId, expenseId }) {
                 <div key={m.id} className="flex items-center gap-3 p-3.5">
                   <Avatar name={m.name} index={indexOf(m.id)} size={36} />
                   <span className="flex-1 font-semibold">{m.name}</span>
-                  <span className="font-bold tabular-nums">{formatINR(expense.allocations[m.id])}</span>
+                  <span className="font-bold tabular-nums">{money(expense.allocations[m.id])}</span>
                 </div>
               ))}
           </div>
@@ -116,7 +123,7 @@ export default function ExpenseDetail({ tripId, expenseId }) {
       <ConfirmDialog
         open={confirmDelete}
         title="Delete this expense?"
-        message={`"${expense.title}" (${formatINR(expense.amount)}) will be permanently removed and all balances will be recalculated.`}
+        message={`"${expense.title}" (${money(expense.amount)}) will be permanently removed and all balances will be recalculated.`}
         confirmLabel="Delete"
         danger
         onConfirm={remove}

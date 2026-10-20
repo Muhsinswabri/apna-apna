@@ -1,18 +1,33 @@
 import { useMemo, useState } from 'react'
-import { ArrowRight, CheckCircle2, FileSpreadsheet, Flag, PartyPopper, Receipt, RotateCcw, Share2, Users, Wallet } from 'lucide-react'
+import { ArrowLeft, ArrowRight, CheckCircle2, FileSpreadsheet, Flag, RotateCcw, Share2, Wallet } from 'lucide-react'
 import { navigate } from '../hooks/useRoute.js'
 import { useTrips } from '../hooks/useTrips.jsx'
 import { computeTripStats } from '../lib/calculations.js'
-import { formatINR } from '../lib/currency.js'
+import { formatMoney } from '../lib/currency.js'
 import { formatDate } from '../lib/dates.js'
 import { exportTripCsv, settlementText, shareText } from '../lib/exporters.js'
 import { touch } from '../lib/model.js'
 import { EmptyState } from '../components/EmptyState.jsx'
+import { ReceiptIllustration } from '../components/illustrations.jsx'
 import { Page, PageHeader } from '../components/PageHeader.jsx'
 import { ConfirmDialog } from '../components/Sheet.jsx'
 import { useToast } from '../components/Toast.jsx'
-import { Avatar, BalanceBadge, SignedAmount } from '../components/ui.jsx'
+import { Avatar, BalanceBadge, LeftTag, SignedAmount } from '../components/ui.jsx'
 
+function StatTile({ value, label }) {
+  return (
+    <div className="card p-4">
+      <p className="text-[32px] font-semibold leading-none tabular-nums">{value}</p>
+      <p className="mt-2 text-sm font-medium text-mute">{label}</p>
+    </div>
+  )
+}
+
+/**
+ * One screen for both "Current Status" (trip ongoing) and "Final Settlement"
+ * (trip completed). Both run the same computeTripStats, so for the same data
+ * the balances and the who-pays-whom plan are identical.
+ */
 export default function Settlement({ tripId }) {
   const { trips, updateTrip } = useTrips()
   const toast = useToast()
@@ -41,6 +56,7 @@ export default function Settlement({ tripId }) {
   }
 
   const completed = trip.status === 'completed'
+  const money = (n) => formatMoney(n, trip.currencyCode)
   const index = (id) => trip.members.findIndex((m) => m.id === id)
   const nameOf = (id) => stats.byId[id]?.name ?? 'Unknown'
 
@@ -52,95 +68,92 @@ export default function Settlement({ tripId }) {
 
   return (
     <>
-      <PageHeader title="Settlement" subtitle={trip.name} backTo={`/trip/${tripId}`} />
+      <PageHeader
+        title={trip.name}
+        subtitle={`${trip.currencyCode} · ${completed ? 'Completed' : 'Ongoing'}`}
+        backTo={`/trip/${tripId}`}
+      />
       <Page className="flex flex-col gap-6">
-        <section aria-label="Trip summary" className="hero-grad rounded-[32px] p-6 shadow-card">
-          <div className="mb-3 flex items-center gap-2">
-            {completed ? (
-              <CheckCircle2 size={20} className="text-pos" />
-            ) : (
-              <Flag size={20} className="text-brand" />
-            )}
-            <p className="text-sm font-extrabold">
-              {completed ? 'Trip Completed' : 'Trip still ongoing'}
-              {completed && trip.completedAt ? (
-                <span className="font-medium text-ink/60"> · {formatDate(trip.completedAt)}</span>
-              ) : null}
-            </p>
-          </div>
-          <p className="text-sm font-semibold text-ink/70">Total trip expense</p>
-          <p className="mb-4 mt-1 text-[44px] font-extrabold leading-none tabular-nums tracking-tight">
-            {formatINR(stats.total)}
+        <div>
+          <h1 className="text-[40px] font-semibold leading-[1.02]">{completed ? 'Final Settlement' : 'Current Status'}</h1>
+          <p className="mt-2 text-[15px] font-medium text-mute">
+            {completed
+              ? `Completed${trip.completedAt ? ` on ${formatDate(trip.completedAt)}` : ''}. Final balances and who pays whom.`
+              : 'Live balances. Looking here does not finish the trip.'}
           </p>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-2xl bg-surface/70 p-3.5 backdrop-blur">
-              <p className="text-xs font-semibold text-mute">Equal share each</p>
-              <p className="text-lg font-extrabold tabular-nums">{formatINR(stats.equalShare)}</p>
+        </div>
+
+        <section aria-label="Trip summary" className="flex flex-col gap-3">
+          <div className="hero-grad rounded-[28px] p-5 shadow-card">
+            <div className="mb-4 flex items-center gap-2">
+              <span className="rounded-full bg-ink px-2.5 py-1 text-xs font-bold text-bg">{trip.currencyCode}</span>
+              <span className="flex items-center gap-1.5 text-sm font-semibold">
+                {completed ? <CheckCircle2 size={16} className="text-pos" /> : <Flag size={16} />}
+                {completed ? 'Trip completed' : 'Trip ongoing'}
+              </span>
             </div>
-            <div className="rounded-2xl bg-surface/70 p-3.5 backdrop-blur">
-              <p className="flex items-center gap-1.5 text-xs font-semibold text-mute">
-                <Users size={13} /> Members
+            <p className="text-sm font-semibold text-ink/70">Total trip expense</p>
+            <p className="mt-1 text-[44px] font-semibold leading-none tabular-nums tracking-tight">{money(stats.total)}</p>
+            {stats.equalShareMeaningful && (
+              <p className="mt-3 text-xs font-medium text-ink/70">
+                For reference, an even split of everything would be {money(stats.equalShare)} each. Balances below use the
+                actual shares of each expense.
               </p>
-              <p className="text-lg font-extrabold">{stats.memberCount}</p>
-            </div>
+            )}
           </div>
-          {!completed && (
-            <p className="mt-4 text-xs font-medium text-ink/70">
-              This is a live preview and updates as expenses change.
-            </p>
-          )}
+          <div className="grid grid-cols-2 gap-3">
+            <StatTile value={stats.expenseCount} label="Expense entries" />
+            <StatTile value={stats.activeCount} label="Active members" />
+            <StatTile value={stats.leftCount} label="Members who left" />
+            <StatTile value={stats.settlements.length} label="Payments to settle" />
+          </div>
         </section>
 
         <section aria-label="Member balances" className="flex flex-col gap-3">
           <h2 className="section-title px-1">Member balances</h2>
-          {stats.rows.map((r) => {
-            const accent = r.balance > 0 ? 'border-l-pos' : r.balance < 0 ? 'border-l-neg' : 'border-l-line'
-            return (
-              <div key={r.id} className={`card border-l-[5px] p-4 ${accent}`}>
-                <div className="mb-3 flex items-center gap-3">
-                  <Avatar name={r.name} index={index(r.id)} size={42} />
-                  <p className="min-w-0 flex-1 truncate font-bold">{r.name}</p>
-                  <BalanceBadge balance={r.balance} />
-                </div>
-                <dl className="grid grid-cols-2 gap-x-4 gap-y-3 rounded-2xl bg-sunken p-3.5 text-sm">
-                  <div>
-                    <dt className="text-xs font-semibold text-mute">Total paid</dt>
-                    <dd className="font-bold tabular-nums">{formatINR(r.paid)}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs font-semibold text-mute">Allocated expense share</dt>
-                    <dd className="font-bold tabular-nums">{formatINR(r.allocated)}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs font-semibold text-mute">Overall equal share</dt>
-                    <dd className="font-bold tabular-nums">{formatINR(r.equalShare)}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs font-semibold text-mute">Final balance</dt>
-                    <dd>
-                      <SignedAmount balance={r.balance} className="text-base" />
-                    </dd>
-                  </div>
-                </dl>
+          {stats.rows.map((r) => (
+            <div key={r.id} className="card p-4">
+              <div className="mb-3 flex items-center gap-3">
+                <Avatar name={r.name} index={index(r.id)} size={42} />
+                <p className="flex min-w-0 flex-1 items-center gap-2 font-semibold">
+                  <span className="truncate">{r.name}</span>
+                  {!r.active && <LeftTag />}
+                </p>
+                <BalanceBadge balance={r.balance} />
               </div>
-            )
-          })}
+              <dl className="grid grid-cols-3 gap-x-3 gap-y-3 rounded-2xl bg-sunken p-3.5 text-sm">
+                <div>
+                  <dt className="text-xs font-medium text-mute">Total paid</dt>
+                  <dd className="font-semibold tabular-nums">{money(r.paid)}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-medium text-mute">Expense share</dt>
+                  <dd className="font-semibold tabular-nums">{money(r.allocated)}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-medium text-mute">Balance</dt>
+                  <dd>
+                    <SignedAmount balance={r.balance} currency={trip.currencyCode} className="text-base" />
+                  </dd>
+                </div>
+              </dl>
+            </div>
+          ))}
           <p className="px-1 text-xs leading-relaxed text-mute">
-            Final balance = amount paid − overall equal share. The overall equal share is the total of {formatINR(stats.total)}{' '}
-            divided by all {stats.memberCount} members. Balances add up to {formatINR(stats.balanceSum)}.
+            Balance = total paid − expense share. Only the people selected for an expense share its cost, and members who
+            joined later or left earlier are counted only for the expenses they were part of. Balances add up to{' '}
+            {money(stats.balanceSum)}.
           </p>
         </section>
 
-        <section aria-label="Settlement plan" className="flex flex-col gap-3">
-          <h2 className="section-title px-1">Settlement plan</h2>
+        <section aria-label="Who pays whom" className="flex flex-col gap-3">
+          <h2 className="section-title px-1">Who pays whom</h2>
           {stats.expenseCount === 0 ? (
-            <div className="card p-5 text-center text-sm text-mute">No expenses were recorded, so nobody owes anything.</div>
+            <div className="card p-5 text-center text-sm text-mute">No expenses recorded yet, so nobody owes anything.</div>
           ) : stats.settlements.length === 0 ? (
             <div className="card flex flex-col items-center gap-2 p-6 text-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-pos-soft text-pos">
-                <PartyPopper size={28} />
-              </div>
-              <p className="text-lg font-extrabold">Everyone is settled</p>
+              <ReceiptIllustration className="w-44" />
+              <p className="text-lg font-bold">Everyone is settled</p>
               <p className="text-sm text-mute">Nobody owes anybody. Nicely done.</p>
             </div>
           ) : (
@@ -153,8 +166,8 @@ export default function Settlement({ tripId }) {
                       <span className="max-w-full truncate text-xs font-bold">{nameOf(s.from)}</span>
                     </div>
                     <div className="flex flex-1 flex-col items-center gap-1">
-                      <span className="text-[22px] font-extrabold tabular-nums tracking-tight text-neg">
-                        {formatINR(s.amount)}
+                      <span className="text-[22px] font-bold tabular-nums tracking-tight text-neg">
+                        {money(s.amount)}
                       </span>
                       <span className="flex w-full items-center text-mute">
                         <span className="h-0 flex-1 border-t-2 border-dashed border-line" />
@@ -168,17 +181,23 @@ export default function Settlement({ tripId }) {
                   </div>
                   <p className="mt-3 rounded-xl bg-sunken px-3 py-2 text-center text-sm">
                     <span className="font-bold">{nameOf(s.from)}</span> pays <span className="font-bold">{nameOf(s.to)}</span>{' '}
-                    <span className="font-bold tabular-nums">{formatINR(s.amount)}</span>
+                    <span className="font-bold tabular-nums">{money(s.amount)}</span>
                   </p>
                 </li>
               ))}
             </ul>
           )}
+          {stats.settlements.length > 0 && (
+            <p className="px-1 text-xs leading-relaxed text-mute">
+              This plan settles everyone with a small number of payments. It is a practical suggestion, not always the
+              absolute minimum.
+            </p>
+          )}
         </section>
 
         <div className="grid grid-cols-2 gap-3">
           <button className="btn-primary col-span-2" onClick={onShare}>
-            <Share2 size={18} /> Share settlement summary
+            <Share2 size={18} /> Share {completed ? 'settlement' : 'status'} summary
           </button>
           <button
             className="btn-outline"
@@ -189,8 +208,8 @@ export default function Settlement({ tripId }) {
           >
             <FileSpreadsheet size={18} /> CSV
           </button>
-          <button className="btn-outline" onClick={() => navigate(`/trip/${tripId}`)}>
-            <Receipt size={18} /> Expenses
+          <button className="btn-outline whitespace-nowrap" onClick={() => navigate(`/trip/${tripId}`)}>
+            <ArrowLeft size={18} /> Back to Trip
           </button>
           {completed ? (
             <button
@@ -214,12 +233,13 @@ export default function Settlement({ tripId }) {
       <ConfirmDialog
         open={confirmFinish}
         title="Finish this trip?"
-        message="The trip will be marked as completed. You can reopen it later to make corrections."
+        message="The trip will be marked as completed and you will see the final settlement. You can reopen it later to make corrections."
         confirmLabel="Finish trip"
         onConfirm={() => {
           updateTrip(tripId, (t) => touch(t, { status: 'completed', completedAt: Date.now() }))
           setConfirmFinish(false)
           toast('Trip completed')
+          navigate(`/trip/${tripId}/settlement`, { replace: true })
         }}
         onCancel={() => setConfirmFinish(false)}
       />

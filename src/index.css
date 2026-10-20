@@ -1,48 +1,62 @@
-@import '@fontsource-variable/plus-jakarta-sans';
+@import '@fontsource-variable/inter-tight';
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --c-bg: 243 247 252; /* #F3F7FC */
+  --c-bg: 255 255 255;
   --c-surface: 255 255 255;
-  --c-sunken: 234 240 248;
-  --c-line: 226 233 243;
-  --c-ink: 24 34 48; /* #182230 */
-  --c-mute: 119 131 151; /* #778397 */
-  --c-brand: 22 119 255; /* #1677FF */
-  --c-brand-soft: 215 232 255; /* soft blue #D7E8FF */
+  --c-sunken: 245 245 242; /* search fields, inner panels */
+  --c-line: 232 233 228;
+  --c-edge: 13 13 13;
+  --c-ink: 13 13 13; /* near-black */
+  --c-mute: 104 108 100; /* #686C64 */
+  --c-brand: 13 13 13; /* primary buttons are black */
+  --c-brand-deep: 40 40 40;
+  --c-brand-soft: 238 247 196; /* pale lime */
   --c-on-brand: 255 255 255;
-  --c-mint: 25 211 162; /* #19D3A2 */
-  --c-lav: 234 216 255; /* soft lavender #EAD8FF */
-  --c-pos: 22 166 106; /* #16A66A */
-  --c-pos-soft: 218 245 232;
-  --c-neg: 240 100 100; /* #F06464 */
-  --c-neg-soft: 253 232 232;
-  --c-g1: 215 232 255;
-  --c-g2: 234 216 255;
+  --c-accent: 13 13 13; /* links and highlights in text */
+  --c-sun: 205 242 70; /* lime #CDF246 */
+  --c-lav: 246 250 214;
+  --c-sky: 223 238 252;
+  --c-mint: 226 246 150;
+  --c-pos: 18 128 66;
+  --c-pos-soft: 214 240 218;
+  --c-neg: 204 58 58;
+  --c-neg-soft: 251 225 223;
+  --c-g1: 222 245 130; /* page wash, top left */
+  --c-g2: 205 232 252; /* page wash, top right */
+  --c-hero-a: 214 243 90; /* lime card gradient */
+  --c-hero-b: 247 252 226;
   color-scheme: light;
 }
 
 :root[data-theme='dark'] {
-  --c-bg: 11 17 30;
-  --c-surface: 21 30 48;
-  --c-sunken: 30 41 63;
-  --c-line: 38 51 77;
-  --c-ink: 232 238 247;
-  --c-mute: 140 154 176;
-  --c-brand: 76 154 255;
-  --c-brand-soft: 24 55 105;
-  --c-on-brand: 5 18 40;
-  --c-mint: 45 226 180;
-  --c-lav: 62 46 96;
-  --c-pos: 52 211 140;
-  --c-pos-soft: 17 52 40;
-  --c-neg: 255 122 122;
-  --c-neg-soft: 62 28 36;
-  --c-g1: 28 58 112;
-  --c-g2: 64 46 104;
+  --c-bg: 12 12 11;
+  --c-surface: 24 24 22;
+  --c-sunken: 36 36 33;
+  --c-line: 52 52 48;
+  --c-edge: 0 0 0;
+  --c-ink: 244 245 240;
+  --c-mute: 168 172 162;
+  --c-brand: 244 245 240; /* white buttons on dark */
+  --c-brand-deep: 220 222 214;
+  --c-brand-soft: 44 52 18;
+  --c-on-brand: 13 13 13;
+  --c-accent: 214 244 100;
+  --c-sun: 205 242 70;
+  --c-lav: 48 52 24;
+  --c-sky: 30 44 58;
+  --c-mint: 54 66 20;
+  --c-pos: 100 210 140;
+  --c-pos-soft: 24 62 40;
+  --c-neg: 255 128 128;
+  --c-neg-soft: 68 30 34;
+  --c-g1: 52 62 16;
+  --c-g2: 24 40 56;
+  --c-hero-a: 60 74 16;
+  --c-hero-b: 26 28 18;
   color-scheme: dark;
 }
 
@@ -53,17 +67,23 @@
   }
   body {
     @apply bg-bg font-sans text-ink antialiased;
-    background-image: radial-gradient(70% 38% at 0% 0%, rgb(var(--c-g1) / 0.85), transparent 72%),
-      radial-gradient(55% 32% at 100% 4%, rgb(var(--c-g2) / 0.75), transparent 72%);
+    letter-spacing: -0.011em;
+    background-image: radial-gradient(75% 32% at 0% 0%, rgb(var(--c-g1) / 0.55), transparent 72%),
+      radial-gradient(55% 26% at 100% 4%, rgb(var(--c-g2) / 0.5), transparent 72%);
     background-attachment: fixed;
     background-repeat: no-repeat;
     overscroll-behavior-y: none;
+  }
+  h1,
+  h2,
+  h3 {
+    letter-spacing: -0.03em;
   }
   button {
     @apply select-none;
   }
   :focus-visible {
-    @apply outline-none ring-2 ring-brand ring-offset-2 ring-offset-bg;
+    @apply outline-none ring-2 ring-ink ring-offset-2 ring-offset-bg;
   }
   input,
   select,
@@ -74,46 +94,46 @@
 
 @layer components {
   .card {
-    @apply rounded-[28px] border border-line/60 bg-surface shadow-card;
+    @apply rounded-[28px] border border-line/80 bg-surface shadow-card;
   }
   .hero-grad {
-    background-image: linear-gradient(135deg, rgb(var(--c-g1)) 0%, rgb(var(--c-g2)) 100%);
+    background-image: linear-gradient(170deg, rgb(var(--c-hero-a)) 0%, rgb(var(--c-hero-b)) 100%);
   }
   .btn {
-    @apply inline-flex min-h-[50px] items-center justify-center gap-2 rounded-2xl px-5 text-[15px] font-semibold transition duration-150 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50;
+    @apply inline-flex min-h-[52px] items-center justify-center gap-2 rounded-full border border-transparent px-6 text-[15px] font-semibold transition duration-100 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50;
   }
   .btn-primary {
-    @apply btn bg-brand text-on-brand shadow-float;
+    @apply btn bg-brand text-on-brand shadow-pop;
   }
   .btn-soft {
-    @apply btn bg-brand-soft text-brand;
+    @apply btn bg-brand-soft text-ink;
   }
   .btn-outline {
-    @apply btn border border-line bg-surface text-ink;
+    @apply btn border-line bg-surface text-ink shadow-pop-sm;
   }
   .btn-danger {
-    @apply btn bg-neg text-white;
+    @apply btn bg-neg text-white shadow-pop;
   }
   .btn-sm {
-    @apply min-h-[40px] rounded-xl px-3.5 text-sm;
+    @apply min-h-[40px] px-4 text-sm;
   }
   .input {
-    @apply min-h-[54px] w-full rounded-2xl border border-line bg-surface px-4 text-ink shadow-[0_1px_2px_rgb(24_34_48/0.03)] placeholder:text-mute/70 transition focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/25;
+    @apply min-h-[54px] w-full rounded-2xl border border-line bg-sunken px-4 font-medium text-ink placeholder:text-mute/70 transition focus:border-ink focus:bg-surface focus:outline-none;
   }
   .input-error {
-    @apply border-neg focus:border-neg focus:ring-neg/25;
+    @apply border-neg focus:border-neg;
   }
   .label {
     @apply mb-2 block text-[13px] font-semibold text-mute;
   }
   .chip {
-    @apply inline-flex min-h-[42px] items-center gap-1.5 rounded-full border border-line bg-surface px-3.5 text-sm font-semibold transition duration-150 active:scale-[0.96];
+    @apply inline-flex min-h-[42px] items-center gap-1.5 rounded-full border border-line bg-surface px-3.5 text-sm font-medium transition duration-100 active:scale-[0.96];
   }
   .chip-on {
-    @apply border-brand bg-brand-soft text-brand;
+    @apply border-sun bg-sun text-[#0D0D0D];
   }
   .section-title {
-    @apply text-[13px] font-bold uppercase tracking-wider text-mute;
+    @apply text-[13px] font-semibold uppercase tracking-wider text-mute;
   }
 }
 
