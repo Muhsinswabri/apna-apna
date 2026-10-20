@@ -1,21 +1,21 @@
-// Original flat illustrations for Apna Apna. Rounded shapes, simple faces, black and grey on white.
+// Original flat illustrations for Apna Apna. Rounded shapes, simple faces, navy outlines, mint, purple and lavender.
 // Colours are fixed (not theme tokens) so the artwork looks the same in light and dark mode.
-// Key names are historical; every colour is now a black or grey.
+// Key names are historical: `orange` is the main purple, `skyDeep` is accent blue, `mintDeep` is green.
 
 const C = {
-  ink: '#0D0D0D',
-  peach: '#F4F4F4',
+  ink: '#171A35',
+  peach: '#EBFBE4',
   cream: '#FFFFFF',
-  orange: '#161616',
-  deep: '#2B2B2B',
-  lav: '#EFEFEF',
-  lavDeep: '#BDBDBD',
-  sky: '#F6F6F6',
-  skyDeep: '#161616',
-  mint: '#E4E4E4',
-  mintDeep: '#8A8A8A',
-  sun: '#DADADA',
-  pink: '#BDBDBD',
+  orange: '#7563D8',
+  deep: '#5B49BD',
+  lav: '#E6DFFF',
+  lavDeep: '#B5A8F0',
+  sky: '#DCE9FF',
+  skyDeep: '#91BFFF',
+  mint: '#D9F8CB',
+  mintDeep: '#8ED28A',
+  sun: '#D9F8CB',
+  pink: '#FF9AA2',
 }
 
 /** Rupee sign drawn as strokes so it never depends on font support. Centered on (0,0). */
@@ -62,7 +62,7 @@ function Person({ cx, top, skin, shirt, hair = C.ink, style = 'short', capColor 
       <circle cx={cx + 6.5} cy={top + 2} r="1.9" fill={C.ink} />
       <circle cx={cx - 12} cy={top + 8} r="3.2" fill={C.pink} opacity=".6" />
       <circle cx={cx + 12} cy={top + 8} r="3.2" fill={C.pink} opacity=".6" />
-      <path d={`M${cx - 6.5} ${top + 8} q6.5 8 13 0 Z`} fill={C.ink} stroke={C.ink} strokeWidth="1.4" strokeLinejoin="round" />
+      <path d={`M${cx - 6.5} ${top + 8} q6.5 8 13 0 Z`} fill="#C0392B" stroke={C.ink} strokeWidth="1.4" strokeLinejoin="round" />
     </g>
   )
 }
@@ -78,9 +78,9 @@ function Arm({ x1, y1, x2, y2, color, skin }) {
 
 /** Home hero: three friends with a suitcase, mountains and a shared receipt. */
 export function FriendsHero({ className = '' }) {
-  const skinA = '#FFFFFF'
-  const skinB = '#F2F2F2'
-  const skinC = '#FFFFFF'
+  const skinA = '#F2C7A5'
+  const skinB = '#E3A982'
+  const skinC = '#F6D2B5'
   return (
     <svg viewBox="0 0 320 210" className={className} role="img" aria-label="Three friends travelling together" fill="none">
       <circle cx="160" cy="124" r="104" fill="#fff" opacity=".55" />
@@ -209,22 +209,27 @@ export function ReceiptIllustration({ className = '' }) {
   )
 }
 
-/** Tiny pastel mountain tile for trip cards. `index` picks the colour pair. */
-const TILE_TONES = [
-  { bg: C.lav, far: '#DCDCDC', near: C.lavDeep },
-  { bg: C.sky, far: '#D0D0D0', near: C.skyDeep },
-  { bg: C.mint, far: '#D6D6D6', near: C.mintDeep },
-  { bg: C.peach, far: '#E6E6E6', near: C.orange },
-]
-
-export function TripTile({ index = 0, size = 56 }) {
-  const t = TILE_TONES[index % TILE_TONES.length]
+/** Settling up: two friends, a coin passing between them and a tick. */
+export function SettleIllustration({ className = '' }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 56 56" aria-hidden="true" className="shrink-0">
-      <rect width="56" height="56" rx="18" fill={t.bg} />
-      <circle cx="40" cy="17" r="6" fill={C.sun} />
-      <path d="M0 46 L20 22 L36 46Z" fill={t.far} />
-      <path d="M16 46 L34 26 L56 46 V50 a6 6 0 0 1 -6 6 H6 a6 6 0 0 1 -6 -6Z" fill={t.near} />
+    <svg viewBox="0 0 240 170" className={className} role="img" aria-label="Two friends settling up" fill="none">
+      <circle cx="120" cy="88" r="74" fill="#fff" opacity=".6" />
+      <circle cx="198" cy="32" r="15" fill={C.mint} />
+      <path d="M0 140 H240" stroke={C.ink} strokeWidth="2.4" strokeLinecap="round" />
+      <Person cx={56} top={86} skin="#F2C7A5" shirt={C.orange} style="curly" />
+      <Person cx={184} top={86} skin="#F6D2B5" shirt={C.mintDeep} style="short" />
+      <path d="M92 70 C110 38 130 38 148 70" stroke={C.ink} strokeWidth="2.4" strokeLinecap="round" strokeDasharray="1 7" />
+      <path d="M144 62 l8 9 -12 3" stroke={C.ink} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+      <g className="animate-float">
+        <circle cx="120" cy="46" r="19" fill={C.sky} stroke={C.ink} strokeWidth="2.4" />
+        <g transform="translate(120 46)">
+          <Rupee size={0.95} />
+        </g>
+      </g>
+      <g>
+        <circle cx="120" cy="120" r="15" fill={C.mint} stroke={C.ink} strokeWidth="2.4" />
+        <path d="M113 120 l5 5 9-11" stroke={C.ink} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+      </g>
     </svg>
   )
 }

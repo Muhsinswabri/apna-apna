@@ -4,11 +4,12 @@ import { goBack, navigate } from '../hooks/useRoute.js'
 import { useTrips } from '../hooks/useTrips.jsx'
 import { formatMoney } from '../lib/currency.js'
 import { formatDateTime } from '../lib/dates.js'
+import { removeExpense } from '../lib/model.js'
 import { EmptyState } from '../components/EmptyState.jsx'
 import { Page, PageHeader } from '../components/PageHeader.jsx'
 import { ConfirmDialog } from '../components/Sheet.jsx'
 import { useToast } from '../components/Toast.jsx'
-import { Avatar } from '../components/ui.jsx'
+import { MemberAvatar } from '../components/MemberAvatar.jsx'
 
 export default function ExpenseDetail({ tripId, expenseId }) {
   const { trips, updateTrip } = useTrips()
@@ -44,7 +45,7 @@ export default function ExpenseDetail({ tripId, expenseId }) {
   const edited = expense.updatedAt - expense.createdAt > 1000
 
   const remove = () => {
-    updateTrip(tripId, (t) => ({ ...t, expenses: t.expenses.filter((e) => e.id !== expenseId) }))
+    updateTrip(tripId, (t) => removeExpense(t, expenseId))
     toast('Expense deleted')
     goBack(`/trip/${tripId}`)
   }
@@ -60,7 +61,7 @@ export default function ExpenseDetail({ tripId, expenseId }) {
             <div className="flex items-center justify-between gap-3">
               <dt className="text-mute">Paid by</dt>
               <dd className="flex items-center gap-2 font-bold">
-                <Avatar name={nameOf(expense.payerId)} index={indexOf(expense.payerId)} size={26} />
+                <MemberAvatar member={trip.members[indexOf(expense.payerId)]} size={26} />
                 {nameOf(expense.payerId)}
               </dd>
             </div>
@@ -96,7 +97,7 @@ export default function ExpenseDetail({ tripId, expenseId }) {
               .filter((m) => expense.allocations[m.id] !== undefined)
               .map((m) => (
                 <div key={m.id} className="flex items-center gap-3 p-3.5">
-                  <Avatar name={m.name} index={indexOf(m.id)} size={36} />
+                  <MemberAvatar member={m} size={36} />
                   <span className="flex-1 font-semibold">{m.name}</span>
                   <span className="font-bold tabular-nums">{money(expense.allocations[m.id])}</span>
                 </div>

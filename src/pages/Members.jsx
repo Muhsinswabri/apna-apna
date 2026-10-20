@@ -14,7 +14,8 @@ import { Page, PageHeader } from '../components/PageHeader.jsx'
 import { ConfirmDialog } from '../components/Sheet.jsx'
 import { TitleInput } from '../components/TitleInput.jsx'
 import { useToast } from '../components/Toast.jsx'
-import { Avatar, FieldError, LeftTag, SignedAmount } from '../components/ui.jsx'
+import { MemberAvatar } from '../components/MemberAvatar.jsx'
+import { FieldError, LeftTag, SignedAmount } from '../components/ui.jsx'
 
 export default function Members({ tripId }) {
   const { trips, updateTrip } = useTrips()
@@ -148,7 +149,7 @@ export default function Members({ tripId }) {
               return (
                 <div key={m.id} className="flex flex-col gap-3 p-3">
                   <div className="flex items-center gap-3">
-                    <Avatar name={m.name} index={i} size={44} />
+                    <MemberAvatar member={m} size={44} />
                     <div className="min-w-0 flex-1">
                       <p className="flex items-center gap-2 font-bold">
                         <span className="truncate">{m.name}</span>

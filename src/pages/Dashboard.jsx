@@ -21,7 +21,7 @@ import { useTrips } from '../hooks/useTrips.jsx'
 import { computeBreakdown, computeTripStats } from '../lib/calculations.js'
 import { formatMoney } from '../lib/currency.js'
 import { exportBackupJson, exportTripCsv, settlementText, shareText } from '../lib/exporters.js'
-import { sortExpensesNewestFirst, touch } from '../lib/model.js'
+import { renameTrip, sortExpensesNewestFirst, touch } from '../lib/model.js'
 import { nameKey, normalizeName } from '../lib/text.js'
 import { validateMemberName } from '../lib/validation.js'
 import { EmptyState } from '../components/EmptyState.jsx'
@@ -31,7 +31,9 @@ import { IconButton, Page, PageHeader } from '../components/PageHeader.jsx'
 import { ConfirmDialog, Sheet } from '../components/Sheet.jsx'
 import { useToast } from '../components/Toast.jsx'
 import { TitleInput } from '../components/TitleInput.jsx'
-import { Avatar, ContributionBar, FieldError, LeftTag, SignedAmount, StatusBadge } from '../components/ui.jsx'
+import { MemberAvatar } from '../components/MemberAvatar.jsx'
+import { TripThumbnail } from '../components/TripThumbnail.jsx'
+import { ContributionBar, FieldError, LeftTag, SignedAmount, StatusBadge } from '../components/ui.jsx'
 import { TripNotices } from '../components/TripNotices.jsx'
 
 const RECENT_COUNT = 5
@@ -40,7 +42,7 @@ function MemberRow({ member, index, row, currency, onRename, canEdit }) {
   const label = row.balance > 0 ? 'to receive' : row.balance < 0 ? 'to pay' : 'settled'
   return (
     <div className="flex items-center gap-3 p-3">
-      <Avatar name={member.name} index={index} size={44} />
+      <MemberAvatar member={member} size={44} />
       <div className="min-w-0 flex-1">
         <p className="flex items-center gap-2 font-bold">
           <span className="truncate">{member.name}</span>
@@ -80,6 +82,9 @@ export default function Dashboard({ tripId }) {
   const [renaming, setRenaming] = useState(null) // member
   const [renameValue, setRenameValue] = useState('')
   const [renameError, setRenameError] = useState('')
+  const [renamingTrip, setRenamingTrip] = useState(false)
+  const [tripNameValue, setTripNameValue] = useState('')
+  const [tripNameError, setTripNameError] = useState('')
 
   const stats = useMemo(() => (trip ? computeTripStats(trip) : null), [trip])
   const breakdown = useMemo(() => (trip ? computeBreakdown(trip.expenses) : []), [trip])
@@ -150,6 +155,14 @@ export default function Dashboard({ tripId }) {
     toast('Name updated')
   }
 
+  const saveTripName = (e) => {
+    e.preventDefault()
+    if (!normalizeName(tripNameValue)) return setTripNameError('Give your trip a name')
+    updateTrip(trip.id, (t) => renameTrip(t, tripNameValue))
+    setRenamingTrip(false)
+    toast('Trip renamed')
+  }
+
   const onShare = async () => {
     setMenuOpen(false)
     const result = await shareText(`${trip.name} - Apna Apna`, settlementText(trip, stats))
@@ -175,7 +188,8 @@ export default function Dashboard({ tripId }) {
       <Page className="flex flex-col gap-6">
         <TripNotices />
 
-        <section aria-label="Total trip expenses" className="hero-grad rounded-[32px] p-6 shadow-card">
+        <section aria-label="Total trip expenses" className="hero-grad relative rounded-[32px] p-6 shadow-card">
+          <TripThumbnail trip={trip} size={52} className="absolute right-5 top-5" />
           <p className="text-sm font-semibold text-ink/70">Total Trip Expenses</p>
           <p className="mb-4 mt-1 text-[44px] font-bold leading-none tabular-nums tracking-tight">
             {money(stats.total)}
@@ -361,6 +375,17 @@ export default function Dashboard({ tripId }) {
           <button className={menuItem} onClick={() => { exportBackupJson([trip], nameKey(trip.name).replace(/\W+/g, '-')); setMenuOpen(false); toast('Backup downloaded') }}>
             <FileJson size={20} className="text-accent" /> Download trip backup (JSON)
           </button>
+          <button
+            className={menuItem}
+            onClick={() => {
+              setMenuOpen(false)
+              setTripNameValue(trip.name)
+              setTripNameError('')
+              setRenamingTrip(true)
+            }}
+          >
+            <Pencil size={20} className="text-accent" /> Rename trip
+          </button>
           <button className={`${menuItem} text-neg`} onClick={() => { setMenuOpen(false); setConfirm('delete') }}>
             <Trash2 size={20} /> Delete trip
           </button>
@@ -392,6 +417,30 @@ export default function Dashboard({ tripId }) {
         onConfirm={remove}
         onCancel={() => setConfirm(null)}
       />
+
+      <Sheet open={renamingTrip} onClose={() => setRenamingTrip(false)} title="Rename trip">
+        <form onSubmit={saveTripName} noValidate>
+          <label htmlFor="rename-trip" className="label">
+            Trip name
+          </label>
+          <TitleInput
+            id="rename-trip"
+            className={`input ${tripNameError ? 'input-error' : ''}`}
+            value={tripNameValue}
+            maxLength={60}
+            autoFocus
+            onChange={(v) => {
+              setTripNameValue(v)
+              setTripNameError('')
+            }}
+          />
+          <FieldError>{tripNameError}</FieldError>
+          <p className="mt-2 text-xs text-mute">The trip picture updates to match the new name. Expenses and members stay as they are.</p>
+          <button type="submit" className="btn-primary mt-5 w-full">
+            Save name
+          </button>
+        </form>
+      </Sheet>
 
       <Sheet open={Boolean(renaming)} onClose={() => setRenaming(null)} title="Rename member">
         <form onSubmit={saveRename} noValidate>

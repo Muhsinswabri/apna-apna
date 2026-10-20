@@ -1,12 +1,16 @@
 import { allocateExpense, sum } from './calculations.js'
+import { isAvatarId, pickAvatarId } from './avatars.js'
 import { DEFAULT_CURRENCY, isCurrencyCode } from './currencies.js'
 import { nameKey, normalizeName } from './text.js'
+import { getTripImageCategory, isTripImageId } from './tripImages.js'
 
 export const STORAGE_KEY = 'apna_apna_trips'
 export const THEME_KEY = 'apna_apna_theme'
+export const ONBOARDED_KEY = 'apna_apna_onboarded'
 // v1: trips, fixed members, expenses (INR only).
 // v2: trip.currencyCode, member joinedAt/leftAt/status, expense.category.
-export const SCHEMA_VERSION = 2
+// v3: trip.imageCategory, member.avatarId (both filled in from the name / id when missing).
+export const SCHEMA_VERSION = 3
 export const BACKUP_APP_ID = 'apna-apna'
 
 export function makeId() {
@@ -90,7 +94,7 @@ export function sanitizeTrip(raw) {
     // v1 members have no join date: they were there from the start.
     const joinedAt = isTime(m.joinedAt) ? m.joinedAt : isTime(m.createdAt) ? m.createdAt : createdAt
     const leftAt = isTime(m.leftAt) && m.leftAt >= joinedAt ? m.leftAt : null
-    members.push({ id: m.id, name, joinedAt, leftAt, status: leftAt ? 'left' : 'active', legacy: !isTime(m.joinedAt) })
+    members.push({ id: m.id, name, joinedAt, leftAt, status: leftAt ? 'left' : 'active', avatarId: m.avatarId, legacy: !isTime(m.joinedAt) })
   }
   if (!members.length) return null
 
@@ -106,11 +110,29 @@ export function sanitizeTrip(raw) {
   // Legacy members count from the trip's start, and never later than the
   // earliest expense, so no old expense can ever predate a member.
   const earliest = Math.min(createdAt, ...expenses.map((e) => e.createdAt))
+  // Avatars: keep valid ones, give everyone else a stable one from their id. Existing ones are
+  // reserved first so a backfilled avatar never steals another member's.
+  const usedAvatars = new Set(members.map((m) => m.avatarId).filter(isAvatarId))
   const finalMembers = members.map(({ legacy, ...m }) => {
-    if (!legacy) return m
-    const joinedAt = Math.min(m.joinedAt, earliest)
-    return { ...m, joinedAt }
+    let avatarId = m.avatarId
+    if (!isAvatarId(avatarId)) {
+      avatarId = pickAvatarId(m.id, usedAvatars)
+      usedAvatars.add(avatarId)
+    }
+    const joinedAt = legacy ? Math.min(m.joinedAt, earliest) : m.joinedAt
+    return { ...m, joinedAt, avatarId }
   })
+
+  const removedExpenses = (Array.isArray(raw.removedExpenses) ? raw.removedExpenses : [])
+    .filter((d) => isObj(d) && isStr(d.id) && typeof d.title === 'string' && Number.isSafeInteger(d.amount) && isTime(d.at))
+    .map((d) => ({
+      id: d.id,
+      title: normalizeName(d.title) || 'Expense',
+      amount: d.amount,
+      paidBy: typeof d.paidBy === 'string' ? normalizeName(d.paidBy) : 'Someone',
+      at: d.at,
+    }))
+    .slice(-50)
 
   const completed = raw.status === 'completed'
   return {
@@ -118,12 +140,14 @@ export function sanitizeTrip(raw) {
     name: normalizeName(raw.name) || 'Untitled Trip',
     destination: typeof raw.destination === 'string' ? normalizeName(raw.destination).slice(0, 60) : '',
     currencyCode: isCurrencyCode(raw.currencyCode) ? raw.currencyCode : DEFAULT_CURRENCY,
+    imageCategory: isTripImageId(raw.imageCategory) ? raw.imageCategory : getTripImageCategory(normalizeName(raw.name)),
     createdAt,
     updatedAt: isTime(raw.updatedAt) ? raw.updatedAt : createdAt,
     status: completed ? 'completed' : 'ongoing',
     completedAt: completed && isTime(raw.completedAt) ? raw.completedAt : completed ? createdAt : null,
     members: finalMembers,
     expenses,
+    removedExpenses,
   }
 }
 
@@ -231,6 +255,23 @@ export function loadTheme() {
 export function saveTheme(theme) {
   try {
     safeStorage()?.setItem(THEME_KEY, theme)
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Has the intro been finished or skipped on this device? */
+export function loadOnboarded() {
+  try {
+    return safeStorage()?.getItem(ONBOARDED_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+export function saveOnboarded() {
+  try {
+    safeStorage()?.setItem(ONBOARDED_KEY, '1')
   } catch {
     /* ignore */
   }

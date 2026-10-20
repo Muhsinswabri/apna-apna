@@ -7,6 +7,7 @@ import { InstallCard } from '../components/InstallCard.jsx'
 import { Page, PageHeader } from '../components/PageHeader.jsx'
 import { BottomNav } from '../components/BottomNav.jsx'
 import { useToast } from '../components/Toast.jsx'
+import { navigate } from '../hooks/useRoute.js'
 import { Logo } from '../components/ui.jsx'
 
 const THEMES = [
@@ -122,6 +123,9 @@ export default function Settings() {
             <p className="flex items-center gap-2">
               <HardDrive size={16} className="shrink-0 text-accent" /> Nothing is sent to any server.
             </p>
+            <button className="btn-soft btn-sm self-start" onClick={() => navigate('/welcome')}>
+              Replay the intro
+            </button>
           </div>
         </section>
 

@@ -20,6 +20,18 @@ export function formatDateTime(ms) {
   return `${formatDate(ms)}, ${formatTime(ms)}`
 }
 
+/** "Today", "Yesterday" or "19 Oct 2026", for grouping a feed by day. */
+export function dayLabel(ms, now = Date.now()) {
+  const startOf = (t) => {
+    const d = new Date(t)
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
+  }
+  const diff = Math.round((startOf(now) - startOf(ms)) / 86400000)
+  if (diff === 0) return 'Today'
+  if (diff === 1) return 'Yesterday'
+  return formatDate(ms)
+}
+
 /** "just now", "5 min ago", "3 hr ago", "2 days ago", then a plain date. */
 export function formatRelative(ms, now = Date.now()) {
   const mins = Math.floor((now - ms) / 60000)

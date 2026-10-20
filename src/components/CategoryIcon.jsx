@@ -1,10 +1,10 @@
 import { BedDouble, Car, Fuel, Receipt, ShoppingBag, Ticket, UtensilsCrossed } from 'lucide-react'
 
 // Keyword -> icon + soft tile. Matched against the category or title, case-insensitive.
-// Tiles are plain grey in the minimal monochrome look; the three names are kept so groups can be recoloured.
-const LIME = 'bg-sunken text-ink'
-const GREY = 'bg-sunken text-ink'
-const BLUE = 'bg-sunken text-ink'
+// Soft lime, lavender and blue tiles.
+const LIME = 'bg-mint text-[#1F6B3E] dark:text-[#9BE3B4]'
+const GREY = 'bg-lav text-[#5B3CC4] dark:text-[#CBBDFF]'
+const BLUE = 'bg-brand-soft text-brand-deep'
 
 const CATEGORIES = [
   { re: /petrol|fuel|diesel|gas|cng/, icon: Fuel, tone: LIME },

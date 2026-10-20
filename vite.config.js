@@ -16,8 +16,8 @@ export default defineConfig({
         scope: '/',
         display: 'standalone',
         orientation: 'portrait',
-        background_color: '#FFFFFF',
-        theme_color: '#FFFFFF',
+        background_color: '#F3F4F6',
+        theme_color: '#F3F4F6',
         categories: ['finance', 'travel', 'utilities'],
         icons: [
           { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png' },

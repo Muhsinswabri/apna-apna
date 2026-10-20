@@ -12,7 +12,9 @@ import { ReceiptIllustration } from '../components/illustrations.jsx'
 import { Page, PageHeader } from '../components/PageHeader.jsx'
 import { ConfirmDialog } from '../components/Sheet.jsx'
 import { useToast } from '../components/Toast.jsx'
-import { Avatar, BalanceBadge, LeftTag, SignedAmount } from '../components/ui.jsx'
+import { MemberAvatar } from '../components/MemberAvatar.jsx'
+import { TripThumbnail } from '../components/TripThumbnail.jsx'
+import { BalanceBadge, LeftTag, SignedAmount } from '../components/ui.jsx'
 
 function StatTile({ value, label }) {
   return (
@@ -57,7 +59,6 @@ export default function Settlement({ tripId }) {
 
   const completed = trip.status === 'completed'
   const money = (n) => formatMoney(n, trip.currencyCode)
-  const index = (id) => trip.members.findIndex((m) => m.id === id)
   const nameOf = (id) => stats.byId[id]?.name ?? 'Unknown'
 
   const onShare = async () => {
@@ -84,9 +85,10 @@ export default function Settlement({ tripId }) {
         </div>
 
         <section aria-label="Trip summary" className="flex flex-col gap-3">
-          <div className="hero-grad rounded-[28px] p-5 shadow-card">
+          <div className="hero-grad relative rounded-[28px] p-5 shadow-card">
+            <TripThumbnail trip={trip} size={52} className="absolute right-4 top-4" />
             <div className="mb-4 flex items-center gap-2">
-              <span className="rounded-full bg-ink px-2.5 py-1 text-xs font-bold text-bg">{trip.currencyCode}</span>
+              <span className="rounded-full bg-navy px-2.5 py-1 text-xs font-bold text-bg">{trip.currencyCode}</span>
               <span className="flex items-center gap-1.5 text-sm font-semibold">
                 {completed ? <CheckCircle2 size={16} className="text-pos" /> : <Flag size={16} />}
                 {completed ? 'Trip completed' : 'Trip ongoing'}
@@ -114,7 +116,7 @@ export default function Settlement({ tripId }) {
           {stats.rows.map((r) => (
             <div key={r.id} className="card p-4">
               <div className="mb-3 flex items-center gap-3">
-                <Avatar name={r.name} index={index(r.id)} size={42} />
+                <MemberAvatar member={r} size={42} />
                 <p className="flex min-w-0 flex-1 items-center gap-2 font-semibold">
                   <span className="truncate">{r.name}</span>
                   {!r.active && <LeftTag />}
@@ -162,7 +164,7 @@ export default function Settlement({ tripId }) {
                 <li key={`${s.from}-${s.to}-${i}`} className="card p-4">
                   <div className="flex items-center gap-2">
                     <div className="flex w-16 flex-col items-center gap-1">
-                      <Avatar name={nameOf(s.from)} index={index(s.from)} size={44} />
+                      <MemberAvatar member={stats.byId[s.from]} size={44} />
                       <span className="max-w-full truncate text-xs font-bold">{nameOf(s.from)}</span>
                     </div>
                     <div className="flex flex-1 flex-col items-center gap-1">
@@ -175,7 +177,7 @@ export default function Settlement({ tripId }) {
                       </span>
                     </div>
                     <div className="flex w-16 flex-col items-center gap-1">
-                      <Avatar name={nameOf(s.to)} index={index(s.to)} size={44} />
+                      <MemberAvatar member={stats.byId[s.to]} size={44} />
                       <span className="max-w-full truncate text-xs font-bold">{nameOf(s.to)}</span>
                     </div>
                   </div>

@@ -1,7 +1,9 @@
 import { allocateExpense } from './calculations.js'
+import { pickAvatarId } from './avatars.js'
 import { DEFAULT_CURRENCY } from './currencies.js'
 import { eligibleAt, isActiveAt } from './members.js'
 import { makeId } from './storage.js'
+import { getTripImageCategory } from './tripImages.js'
 import { normalizeName, validateMemberName, validateTripSetup } from './validation.js'
 
 const firstError = (r) =>
@@ -16,24 +18,60 @@ export function createTrip({ name, destination = '', currencyCode = DEFAULT_CURR
     name: normalizeName(name),
     destination: normalizeName(destination),
     currencyCode,
+    imageCategory: getTripImageCategory(name),
     createdAt: now,
     updatedAt: now,
     status: 'ongoing',
     completedAt: null,
-    members: memberNames.map((n) => newMember(n, now)),
+    members: buildMembers(memberNames, now),
     expenses: [],
+    removedExpenses: [],
   }
 }
 
-function newMember(name, now) {
-  return { id: makeId(), name: normalizeName(name), joinedAt: now, leftAt: null, status: 'active' }
+export const MAX_REMOVED_LOG = 50
+
+/** Delete an expense and keep a small note of it so the Activity feed can show the deletion. */
+export function removeExpense(trip, expenseId, now = Date.now()) {
+  const gone = trip.expenses.find((e) => e.id === expenseId)
+  if (!gone) return trip
+  const paidBy = trip.members.find((m) => m.id === gone.payerId)?.name ?? 'Someone'
+  const note = { id: gone.id, title: gone.title, amount: gone.amount, paidBy, at: now }
+  return {
+    ...trip,
+    expenses: trip.expenses.filter((e) => e.id !== expenseId),
+    removedExpenses: [...(trip.removedExpenses ?? []), note].slice(-MAX_REMOVED_LOG),
+  }
+}
+
+/** New member with a stable avatar chosen from their id, avoiding avatars already in use on the trip. */
+function newMember(name, now, used = new Set()) {
+  const id = makeId()
+  return { id, name: normalizeName(name), joinedAt: now, leftAt: null, status: 'active', avatarId: pickAvatarId(id, used) }
+}
+
+function buildMembers(names, now) {
+  const used = new Set()
+  return names.map((n) => {
+    const m = newMember(n, now, used)
+    used.add(m.avatarId)
+    return m
+  })
+}
+
+/** Rename a trip. Its thumbnail follows the new name; nothing else changes. */
+export function renameTrip(trip, name) {
+  const clean = normalizeName(name)
+  if (!clean) throw new Error('Give your trip a name')
+  return { ...trip, name: clean, imageCategory: getTripImageCategory(clean) }
 }
 
 /** Add a member mid-trip. They only share expenses recorded from now on. */
 export function addMember(trip, name, now = Date.now()) {
   const error = validateMemberName(name, trip.members.map((m) => m.name))
   if (error) throw new Error(error)
-  return { ...trip, members: [...trip.members, newMember(name, now)] }
+  const used = new Set(trip.members.map((m) => m.avatarId))
+  return { ...trip, members: [...trip.members, newMember(name, now, used)] }
 }
 
 /** Mark a member as left. Their history stays; they just stop being offered for new expenses. */

@@ -22,7 +22,7 @@ export function ToastProvider({ children }) {
           <div
             key={toast.key}
             role="status"
-            className="pointer-events-auto flex animate-rise items-center gap-2 rounded-2xl bg-ink px-4 py-3 text-sm font-semibold text-bg shadow-2xl"
+            className="pointer-events-auto flex animate-rise items-center gap-2 rounded-2xl bg-navy px-4 py-3 text-sm font-semibold text-bg shadow-2xl"
           >
             {toast.type === 'error' ? <CircleAlert size={18} /> : <CheckCircle2 size={18} />}
             {toast.message}

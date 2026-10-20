@@ -13,7 +13,8 @@ import { Page, PageHeader } from '../components/PageHeader.jsx'
 import { Sheet } from '../components/Sheet.jsx'
 import { TitleInput } from '../components/TitleInput.jsx'
 import { useToast } from '../components/Toast.jsx'
-import { Avatar, FieldError } from '../components/ui.jsx'
+import { MemberAvatar } from '../components/MemberAvatar.jsx'
+import { FieldError } from '../components/ui.jsx'
 
 const SUGGESTIONS = ['Petrol', 'Hotel', 'Food', 'Tickets', 'Shopping', 'Taxi', 'Other']
 const CATEGORIES = ['Food', 'Stay', 'Travel', 'Fuel', 'Tickets', 'Shopping', 'Other']
@@ -282,7 +283,7 @@ export default function ExpenseForm({ tripId, expenseId }) {
                       clearError('payer')
                     }}
                   >
-                    <Avatar name={m.name} index={trip.members.indexOf(m)} size={28} />
+                    <MemberAvatar member={m} size={28} />
                     {m.name}
                   </button>
                 )
@@ -309,7 +310,7 @@ export default function ExpenseForm({ tripId, expenseId }) {
                     className={`chip !pl-1.5 ${on ? 'chip-on' : ''}`}
                     onClick={() => toggleParticipant(m.id)}
                   >
-                    <Avatar name={m.name} index={trip.members.indexOf(m)} size={28} />
+                    <MemberAvatar member={m} size={28} />
                     {m.name}
                     {on && <Check size={16} />}
                   </button>

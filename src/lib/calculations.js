@@ -43,6 +43,7 @@ export function computeTripStats(trip) {
     byId[m.id] = {
       id: m.id,
       name: m.name,
+      avatarId: m.avatarId,
       active: !m.leftAt,
       joinedAt: m.joinedAt,
       leftAt: m.leftAt ?? null,

@@ -5,7 +5,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['"Inter Tight Variable"', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+        sans: ['"Manrope Variable"', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
       },
       colors: {
         bg: 'rgb(var(--c-bg) / <alpha-value>)',
@@ -15,13 +15,16 @@ export default {
         edge: 'rgb(var(--c-edge) / <alpha-value>)',
         ink: 'rgb(var(--c-ink) / <alpha-value>)',
         mute: 'rgb(var(--c-mute) / <alpha-value>)',
-        // brand = black for primary fills. accent = text highlight colour. sun = lime highlight.
+        // brand = deep navy for buttons. purple = highlight panels. accent = deep purple for text. sun/mint = mint, lav = lavender.
         brand: 'rgb(var(--c-brand) / <alpha-value>)',
         'brand-deep': 'rgb(var(--c-brand-deep) / <alpha-value>)',
         'brand-soft': 'rgb(var(--c-brand-soft) / <alpha-value>)',
         'on-brand': 'rgb(var(--c-on-brand) / <alpha-value>)',
         accent: 'rgb(var(--c-accent) / <alpha-value>)',
         sun: 'rgb(var(--c-sun) / <alpha-value>)',
+        navy: 'rgb(var(--c-navy) / <alpha-value>)',
+        purple: 'rgb(var(--c-purple) / <alpha-value>)',
+        mintsoft: 'rgb(var(--c-mintsoft) / <alpha-value>)',
         lav: 'rgb(var(--c-lav) / <alpha-value>)',
         sky: 'rgb(var(--c-sky) / <alpha-value>)',
         mint: 'rgb(var(--c-mint) / <alpha-value>)',
@@ -31,10 +34,10 @@ export default {
         'neg-soft': 'rgb(var(--c-neg-soft) / <alpha-value>)',
       },
       boxShadow: {
-        card: 'none',
-        pop: 'none',
-        'pop-sm': 'none',
-        nav: 'none',
+        card: '0 1px 2px rgb(23 26 53 / 0.04), 0 8px 24px rgb(23 26 53 / 0.06)',
+        pop: '0 8px 18px rgb(23 26 53 / 0.22)',
+        'pop-sm': '0 1px 2px rgb(23 26 53 / 0.05)',
+        nav: '0 -4px 28px rgb(23 26 53 / 0.10)',
       },
       keyframes: {
         rise: { from: { opacity: 0, transform: 'translateY(10px)' }, to: { opacity: 1, transform: 'none' } },
